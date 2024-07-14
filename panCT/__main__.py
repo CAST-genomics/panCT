@@ -8,7 +8,7 @@ def main(gfa_file: str, output_file: str):
     # Import and run the function from gfa_to_complexity.py
     from .gfa_to_complexity import main as gfa_main
     import sys
-    sys.argv = ["gfa_to_complexity.py", gfa_file, output_file]
+    sys.argv = ["calculate_complexity_gfa.py", gfa_file, output_file]
     gfa_main()
 
 if __name__ == "__main__":
