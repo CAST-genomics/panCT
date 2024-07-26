@@ -30,7 +30,7 @@ pytest = ">=7.4.3"
 black = ">=23.3.0"
 ipython = ">=7.34.0"
 coverage = {extras = ["toml"], version = ">=7.2.7"}
-# filprofiler = ">=2023.3.1"
+filprofiler = ">=2023.3.1"
 
 [tool.poetry.scripts]
 panCT = 'panCT.__main__:main'
