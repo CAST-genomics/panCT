@@ -1,22 +1,23 @@
 # Taken from grant proposal section C.2.1 in Research Strategy
-# We will define sequence uniqueness as U = ∑ s in S (|s|*p_s*(1 − p_s))/L 
+# We will define sequence uniqueness as U = ∑ s in S (|s|*p_s*(1 − p_s))/L
 # S is the set of nodes in a region,
-#|s| is the length in bp of node s, 
-# p_s is the percent of sequences that go through node s, and 
-# L is the average length in bp of all paths traversing the subgraph of interest. 
+# |s| is the length in bp of node s,
+# p_s is the percent of sequences that go through node s, and
+# L is the average length in bp of all paths traversing the subgraph of interest.
 
-#This metric is meant to capture the relative amount of sequence in a region that is shared vs. polymorphic amongst haplotypes in a region.
+# This metric is meant to capture the relative amount of sequence in a region that is shared vs. polymorphic amongst haplotypes in a region.
 
-'''
+"""
 Example Usage:
 FILE_PATH=/storage/wwford/projects/complexity_metric/node_maps/minigraph_cactus_node_sample_map_tabix.tsv.gz
 
 python calculate_complexity_gfa.py ../segment_graphs/INS.gfa $FILE_PATH
-'''
+"""
 
 import subprocess
 import sys
 import time
+
 
 def main():
 
@@ -34,10 +35,11 @@ def main():
 
     print(f"Complexity\t{complexity}\n")
 
+
 def complexity_score(gfa_file, node_map):
     start_time = time.time()
 
-    gfa = open(gfa_file,'r')
+    gfa = open(gfa_file, "r")
 
     complexity = 0
     total_length = 0
@@ -54,14 +56,14 @@ def complexity_score(gfa_file, node_map):
             node = vars[1]
             length = False
             for var in vars[3:]:
-                if var.startswith("LN"): 
+                if var.startswith("LN"):
                     length = var
                     break
 
-            if not length: 
+            if not length:
                 print(f"Error! Node {node} has no length")
                 return
-            
+
             length_int = int(length.split(sep=":")[2])
 
             # Compute Average Segment Length
@@ -72,28 +74,34 @@ def complexity_score(gfa_file, node_map):
             p_s = get_p_s(node, node_map, total_haplotypes)
 
             # Add complexity
-            addition = length_int*p_s*(1-p_s)
+            addition = length_int * p_s * (1 - p_s)
 
-            #print("addition:", addition)
+            # print("addition:", addition)
             complexity += addition
 
-    average_length = total_length/number_of_nodes
-    complexity = complexity/(average_length)
+    average_length = total_length / number_of_nodes
+    complexity = complexity / (average_length)
 
     end_time = time.time()
-    time_per_node = (end_time-start_time)/number_of_nodes
+    time_per_node = (end_time - start_time) / number_of_nodes
     # print(f"Time per node\t{time_per_node}")
 
     return complexity
 
-'''
-Calcualtes the percent of haplotypes that travel through the given node
-'''
-def get_p_s(target_node:str, node_map:str, total_haplotypes:int):
-    command = ["tabix", node_map, f":{target_node}-{target_node}"]
-    tabix_output = subprocess.run(command, stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
-    haplotypes = tabix_output.split('\t')[2:] # list of all haplotypes for node 
-    return len(haplotypes)/total_haplotypes
 
-if __name__ == '__main__':
+"""
+Calcualtes the percent of haplotypes that travel through the given node
+"""
+
+
+def get_p_s(target_node: str, node_map: str, total_haplotypes: int):
+    command = ["tabix", node_map, f":{target_node}-{target_node}"]
+    tabix_output = (
+        subprocess.run(command, stdout=subprocess.PIPE).stdout.decode("utf-8").strip()
+    )
+    haplotypes = tabix_output.split("\t")[2:]  # list of all haplotypes for node
+    return len(haplotypes) / total_haplotypes
+
+
+if __name__ == "__main__":
     main()
