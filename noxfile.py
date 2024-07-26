@@ -1,5 +1,5 @@
-
 """Nox sessions."""
+
 import os
 import shutil
 from pathlib import Path
@@ -11,7 +11,7 @@ from nox_poetry import session
 
 package = "panct"
 python_versions = ["3.9", "3.10", "3.11", "3.12"]
-locked_python_version = "3.9" # keep in sync with dev-env.yml
+locked_python_version = "3.9"  # keep in sync with dev-env.yml
 nox.needs_version = ">= 2022.11.21"
 nox.options.sessions = (
     "docs",
