@@ -31,7 +31,8 @@
 				"python.terminal.activateEnvInCurrentTerminal": true,
 				"python.venvFolders": ["/home/vscode/.cache/pypoetry/virtualenvs"],
 				"terminal.integrated.environmentChangesRelaunch": true,
-				"terminal.integrated.hideOnStartup": "always"
+				"terminal.integrated.hideOnStartup": "always",
+				"files.eol": "\n"
 			}
 		}
 	}
