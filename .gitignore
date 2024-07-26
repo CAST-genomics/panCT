@@ -1,0 +1,15 @@
+# sphinx documentation
+docs/_build/
+# python cache
+__pycache__
+# pytest and testing-related caches
+.pytest_cache
+.coverage*
+.nox
+# poetry
+dist/
+# filprofiler
+fil-result/
+
+# OSX
+*.DS_Store*
