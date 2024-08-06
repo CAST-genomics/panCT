@@ -14,9 +14,9 @@ FILE_PATH=/storage/wwford/projects/complexity_metric/node_maps/minigraph_cactus_
 python calculate_complexity_gfa.py ../segment_graphs/INS.gfa $FILE_PATH
 """
 
-import subprocess
 import sys
 import time
+import subprocess
 
 
 def main():
@@ -36,7 +36,7 @@ def main():
     print(f"Complexity\t{complexity}\n")
 
 
-def complexity_score(gfa_file, node_map):
+def complexity_score(gfa_file: str, node_map: str):
     start_time = time.time()
 
     gfa = open(gfa_file, "r")
@@ -84,7 +84,7 @@ def complexity_score(gfa_file, node_map):
 
     end_time = time.time()
     time_per_node = (end_time - start_time) / number_of_nodes
-    # print(f"Time per node\t{time_per_node}")
+    print(f"Time per node\t{time_per_node}")
 
     return complexity
 
