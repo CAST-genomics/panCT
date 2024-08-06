@@ -8,6 +8,7 @@ __pycache__
 .nox
 # poetry
 dist/
+.venv/
 # filprofiler
 fil-result/
 
