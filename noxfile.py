@@ -1,3 +1,4 @@
+# type: ignore
 """Nox sessions."""
 
 import os
