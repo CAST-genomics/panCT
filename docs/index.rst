@@ -5,6 +5,9 @@ panCT
 
 panCT is our pangenome complex trait toolkit, which implements command utilities for complex trait analyses using pangenomes
 
+.. warning::
+   panCT is still under construction and has not yet been published to PyPI or bioconda, so it cannot yet be installed through ``pip`` or ``conda``.
+
 Commands
 ~~~~~~~~
 

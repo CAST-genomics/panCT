@@ -4,6 +4,9 @@
 Installation
 ============
 
+.. warning::
+   panCT is still under construction and has not yet been published to PyPI or bioconda, so it cannot yet be installed through ``pip`` or ``conda``. We will leave these docs here for later.
+
 Using pip
 ---------
 
