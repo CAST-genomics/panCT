@@ -39,7 +39,7 @@ def complexity_score(gfa_file: str, node_map: str):
         The path to the GFA file
     node_map : str
         The path to the node map file
-    
+
     Returns
     -------
     float
@@ -109,7 +109,7 @@ def get_p_s(target_node: str, node_map: str, total_haplotypes: int) -> float:
         The path to the node map file
     total_haplotypes : int
         The total number of haplotypes in the dataset
-    
+
     Returns
     -------
     float

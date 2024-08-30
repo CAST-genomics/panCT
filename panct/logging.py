@@ -2,7 +2,7 @@ from __future__ import annotations
 import logging
 
 
-def getLogger(name: str = None, level: str = "ERROR", exact_time=False):
+def getLogger(name: str = None, level: str = "ERROR", exact_time: bool = False):
     """
     Retrieve a Logger object
 
@@ -12,6 +12,8 @@ def getLogger(name: str = None, level: str = "ERROR", exact_time=False):
         The name of the logging object
     level : str, optional
         The level of verbosity for the logger
+    exact_time: bool, optional
+        Whether to report the exact time of the message when in DEBUG mode
     """
     if name is None:
         name = ""
@@ -19,7 +21,7 @@ def getLogger(name: str = None, level: str = "ERROR", exact_time=False):
         name = "." + name
 
     # create logger
-    logger = logging.getLogger("haptools" + name)
+    logger = logging.getLogger("panct" + name)
     logger.setLevel(level)
 
     # create console handler and set level to debug
