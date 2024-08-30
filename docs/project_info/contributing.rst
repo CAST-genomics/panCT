@@ -158,7 +158,7 @@ In addition to the auto-documented changes, you might want to consider adding a 
 For new commands
 ++++++++++++++++
 
-After you add a new command, you should make sure to create tests for it in the `tests/ directory <https://github.com/CAST-genomics/panct/tree/main/tests>`_. You should also create a new page in the *Commands* section of our documentation with sections for a short description, an abbreviated usage, example commands, and a detailed usage (which is auto-generated). You can refer to :ref:`the complexity command <commands-compplexity>` as an example. To ensure your new documentation page appears in our table of contents, add the name of the page to the list at the bottom of our `index.rst file <https://github.com/CAST-genomics/panct/blob/main/docs/index.rst>`_.
+After you add a new command, you should make sure to create tests for it in the `tests/ directory <https://github.com/CAST-genomics/panct/tree/main/tests>`_. You should also create a new page in the *Commands* section of our documentation with sections for a short description, an abbreviated usage, example commands, and a detailed usage (which is auto-generated). You can refer to :ref:`the complexity command <commands-complexity>` as an example. To ensure your new documentation page appears in our table of contents, add the name of the page to the list at the bottom of our `index.rst file <https://github.com/CAST-genomics/panct/blob/main/docs/index.rst>`_.
 
 .. _code-check-instructions:
 

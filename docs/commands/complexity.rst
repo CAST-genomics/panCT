@@ -28,7 +28,7 @@ All files used in these examples are described :doc:`here </project_info/example
 Detailed Usage
 ~~~~~~~~~~~~~~
 
-.. click:: panct.__main__:app
+.. click:: panct.__main__:typer_click_object
    :prog: panct
    :show-nested:
    :commands: complexity

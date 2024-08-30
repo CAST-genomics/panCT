@@ -7,7 +7,7 @@ Documentation
 Command line interface
 ----------------------
 
-.. click:: panct.__main__:app
+.. click:: panct.__main__:typer_click_object
    :prog: panct
    :nested: full
 
