@@ -33,7 +33,7 @@ coverage = {extras = ["toml"], version = ">=7.2.7"}
 filprofiler = ">=2023.3.1"
 
 [tool.poetry.scripts]
-panCT = 'panCT.__main__:main'
+panct = 'panct.__main__:app'
 
 [tool.black]
 line-length = 88

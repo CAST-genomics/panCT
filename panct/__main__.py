@@ -1,15 +1,25 @@
 #!/usr/bin/env python
 import typer
-from rich import print
 
 app = typer.Typer()
 
 
 @app.command()
-def main(gfa_file: str, output_file: str):
-    # Import and run the function from gfa_to_complexity.py
+def complexity(gfa_file: str, output_file: str):
+    """
+    Compute complexity scores
+    """
     from .calculate_complexity_gfa import complexity_score as gfa_main
+
     print(gfa_main(gfa_file, output_file))
+
+
+@app.command()
+def map(gfa_file: str, output_file: str):
+    """
+    Generate a node-map file
+    """
+    typer.echo("Generating")
 
 
 if __name__ == "__main__":
