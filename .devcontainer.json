@@ -23,7 +23,10 @@
 	// Configure tool-specific properties.
 	"customizations": {
 		"vscode": {
-			"extensions": ["ms-python.python"],
+			"extensions": [
+				"ms-python.python",
+				"ms-python.black-formatter"
+			],
 			"settings": {
 				"python.analysis.typeCheckingMode": "strict",
 				"python.condaPath": "/opt/conda/condabin/conda",
@@ -37,6 +40,7 @@
 				"python.testing.pytestEnabled": true,
 				"python.testing.unittestEnabled": false,
 				"terminal.integrated.environmentChangesRelaunch": true,
+				"editor.defaultFormatter": "ms-python.black-formatter",
 				"terminal.integrated.hideOnStartup": "always",
 				"files.eol": "\n"
 			}

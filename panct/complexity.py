@@ -7,13 +7,6 @@
 
 # This metric is meant to capture the relative amount of sequence in a region that is shared vs. polymorphic amongst haplotypes in a region.
 
-"""
-Example Usage:
-FILE_PATH=/storage/wwford/projects/complexity_metric/node_maps/minigraph_cactus_node_sample_map_tabix.tsv.gz
-
-python calculate_complexity_gfa.py ../segment_graphs/INS.gfa $FILE_PATH
-"""
-
 import sys
 import time
 import subprocess
@@ -37,6 +30,21 @@ def main():
 
 
 def complexity_score(gfa_file: str, node_map: str):
+    """
+    Compute a complexity score for a given GFA file
+
+    Parameters
+    ----------
+    gfa_file : str
+        The path to the GFA file
+    node_map : str
+        The path to the node map file
+
+    Returns
+    -------
+    float
+        The complexity score of the GFA file
+    """
     start_time = time.time()
 
     gfa = open(gfa_file, "r")
@@ -89,19 +97,27 @@ def complexity_score(gfa_file: str, node_map: str):
     return complexity
 
 
-"""
-Calcualtes the percent of haplotypes that travel through the given node
-"""
+def get_p_s(target_node: str, node_map: str, total_haplotypes: int) -> float:
+    """
+    Calculate the percent of haplotypes that travel through the given node
 
+    Parameters
+    ----------
+    target_node : str
+        The node to calculate the percent of haplotypes that travel through
+    node_map : str
+        The path to the node map file
+    total_haplotypes : int
+        The total number of haplotypes in the dataset
 
-def get_p_s(target_node: str, node_map: str, total_haplotypes: int):
+    Returns
+    -------
+    float
+        The percent of haplotypes that travel through the given node
+    """
     command = ["tabix", node_map, f":{target_node}-{target_node}"]
     tabix_output = (
         subprocess.run(command, stdout=subprocess.PIPE).stdout.decode("utf-8").strip()
     )
     haplotypes = tabix_output.split("\t")[2:]  # list of all haplotypes for node
     return len(haplotypes) / total_haplotypes
-
-
-if __name__ == "__main__":
-    main()

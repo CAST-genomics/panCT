@@ -6,7 +6,7 @@ build-backend = "poetry.core.masonry.api"
 name = "panCT"
 version = "0.1.0"
 description = "Tool for calculating genomic sequence complexity"
-authors = ["Your Name <you@example.com>"]
+authors = ["CAST Genomics"]
 license = "MIT"
 repository = "https://github.com/CAST-genomics/panCT"
 homepage = "https://github.com/CAST-genomics/panCT"
@@ -33,7 +33,7 @@ coverage = {extras = ["toml"], version = ">=7.2.7"}
 filprofiler = ">=2023.3.1"
 
 [tool.poetry.scripts]
-panCT = 'panCT.__main__:main'
+panct = 'panct.__main__:app'
 
 [tool.black]
 line-length = 88
@@ -43,3 +43,7 @@ preview = true
 log_cli_level = "DEBUG"
 log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
 log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+
+[tool.pyright]
+strictParameterNoneValue = false
+ignore = ["**/tests/**"]
