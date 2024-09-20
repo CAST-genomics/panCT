@@ -7,117 +7,94 @@
 
 # This metric is meant to capture the relative amount of sequence in a region that is shared vs. polymorphic amongst haplotypes in a region.
 
+import os
 import sys
 import time
 import subprocess
 
+from . import utils as utils
+from . import gbz_utils as gbz
+from . import graph_utils as gutils
 
-def main():
+AVAILALBE_METRICS = ["sequniq","sequniq2"]
 
-    # total arguments
-    if len(sys.argv) != 3:
-        print("Usage: python calculate_complexity.py input.gfa node_map.tsv.gz")
-        return
-
-    print(f"Computing complexity of {sys.argv[1]}\t{sys.argv[2]}")
-
-    gfa_file = sys.argv[1]
-    node_map = str(sys.argv[2])
-
-    complexity = complexity_score(gfa_file, node_map)
-
-    print(f"Complexity\t{complexity}\n")
-
-
-def complexity_score(gfa_file: str, node_map: str):
-    """
-    Compute a complexity score for a given GFA file
-
-    Parameters
-    ----------
-    gfa_file : str
-        The path to the GFA file
-    node_map : str
-        The path to the node map file
-
-    Returns
-    -------
-    float
-        The complexity score of the GFA file
-    """
+def main(gbz_file: str, output_file: str, 
+    region: str, region_file: str, metrics: str,
+    reference: str):
     start_time = time.time()
 
-    gfa = open(gfa_file, "r")
+    #### Check GBZ file and index #####
+    if not gbz.CheckGBZBaseInstalled():
+        return 1
+    if not gbz.CheckGBZFile(gbz_file):
+        return 1
 
-    complexity = 0
-    total_length = 0
-    number_of_nodes = 0
+    #### Check requested metrics #####
+    metrics_list = metrics.split(",")
+    for m in metrics_list:
+        if m not in AVAILALBE_METRICS:
+            utils.WARNING(f"Encountered invalid metric {m}")
+            return 1
 
-    # TODO should this be over the whole gfa or just in the subsetted region?
-    # 90 is toatl number of haplotypes in minigraph cactus
-    total_haplotypes = 90
+    #### Set up list of regions to process #####
+    regions = []
+    if region != "":
+        region = utils.ParseRegionString(region)
+        if region is None:
+            return 1
+        else: regions.append(region)
+    if region_file != "":
+        if not os.path.exists(region_file):
+            utils.WARNING(f"Could not find {region_file}")
+            return 1
+        regions.extend(utils.ParseRegionsFile(region_file))
 
-    for line in gfa.readlines():
-        if line.startswith("S"):
-            # Get the sequence length and node id
-            vars = line.split(sep="\t")
-            node = vars[1]
-            length = False
-            for var in vars[3:]:
-                if var.startswith("LN"):
-                    length = var
-                    break
+    ##### Set up output file #####
+    outf = open(output_file, "w")
+    outf.write("\t".join(["chrom","start","end"] + metrics_list)+"\n")
 
-            if not length:
-                print(f"Error! Node {node} has no length")
-                return
+    ##### Process each region #####
+    for region in regions:
+        # Load node table
+        #node_table = gutils.LoadNodeTableFromGBZ(gbz_file, region, reference)
+        node_table = gutils.LoadNodeTableFromGFA("test.gfa") # TODO remove
 
-            length_int = int(length.split(sep=":")[2])
+        # Compute each requested complexity metric
+        metric_results = []
+        for m in metrics_list:
+            metric_results.append(ComputeComplexity(node_table, m))
 
-            # Compute Average Segment Length
-            total_length += length_int
-            number_of_nodes += 1
-
-            # Calculate p_s
-            p_s = get_p_s(node, node_map, total_haplotypes)
-
-            # Add complexity
-            addition = length_int * p_s * (1 - p_s)
-
-            # print("addition:", addition)
-            complexity += addition
-
-    average_length = total_length / number_of_nodes
-    complexity = complexity / (average_length)
-
+        # Output
+        items = region + metric_results
+        outf.write("\t".join([str(item) for item in items])+"\n")
+    ##### Cleanup #####
     end_time = time.time()
-    time_per_node = (end_time - start_time) / number_of_nodes
-    print(f"Time per node\t{time_per_node}")
+    time_per_region = (end_time - start_time) / len(regions)
+    sys.stderr.write(f"Time per region\t{time_per_region}\n")
+    outf.close()
 
+def ComputeComplexity(node_table, metric):
+    """
+    Compute complexity for a node table. Options:
+
+    sequniq: sum_n |n|*p_n*(1-p_n)/|L| where |L| is the 
+       average path length
+    sequniq2: sum_n |n|*p_n*(1-p_n)/|L| where |L| is the 
+       average node length
+    """
+    complexity = 0
+    # Add up value for each node
+    for n in node_table.nodes.keys():
+        if metric == "sequniq" or metric == "sequniq2":
+            length = node_table.nodes[n].length
+            p = len(node_table.nodes[n].samples)/node_table.numwalks
+            complexity += length*p*(1-p)
+        else:
+            utils.WARNING(f"Encountered invalid metric {metric}")
+            return None
+    # Normalize
+    if metric == "sequniq":
+        complexity = complexity/node_table.GetMeanPathLength()
+    elif metric == "sequniq2":
+        complexity = complexity/node_table.GetMeanNodeLength()   
     return complexity
-
-
-def get_p_s(target_node: str, node_map: str, total_haplotypes: int) -> float:
-    """
-    Calculate the percent of haplotypes that travel through the given node
-
-    Parameters
-    ----------
-    target_node : str
-        The node to calculate the percent of haplotypes that travel through
-    node_map : str
-        The path to the node map file
-    total_haplotypes : int
-        The total number of haplotypes in the dataset
-
-    Returns
-    -------
-    float
-        The percent of haplotypes that travel through the given node
-    """
-    command = ["tabix", node_map, f":{target_node}-{target_node}"]
-    tabix_output = (
-        subprocess.run(command, stdout=subprocess.PIPE).stdout.decode("utf-8").strip()
-    )
-    haplotypes = tabix_output.split("\t")[2:]  # list of all haplotypes for node
-    return len(haplotypes) / total_haplotypes
