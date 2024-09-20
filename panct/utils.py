@@ -5,6 +5,9 @@ Utilities for panct package
 import re
 import sys
 
+def PROGRESS(msg):
+    sys.stderr.write("[panct] PROGRESS: " + msg.strip()+"\n")
+
 def WARNING(msg):
     sys.stderr.write("[panct] WARNING: " + msg.strip()+"\n")
 

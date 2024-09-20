@@ -1,11 +1,7 @@
-# Taken from grant proposal section C.2.1 in Research Strategy
-# We will define sequence uniqueness as U = ∑ s in S (|s|*p_s*(1 − p_s))/L
-# S is the set of nodes in a region,
-# |s| is the length in bp of node s,
-# p_s is the percent of sequences that go through node s, and
-# L is the average length in bp of all paths traversing the subgraph of interest.
-
-# This metric is meant to capture the relative amount of sequence in a region that is shared vs. polymorphic amongst haplotypes in a region.
+"""
+Compute complexity scores for regions 
+of a pangenome graph
+"""
 
 import os
 import sys
@@ -51,13 +47,16 @@ def main(gbz_file: str, output_file: str,
 
     ##### Set up output file #####
     outf = open(output_file, "w")
-    outf.write("\t".join(["chrom","start","end"] + metrics_list)+"\n")
+    outf.write("\t".join(["chrom","start","end","numnodes","total_length", "numwalks"] + 
+        metrics_list)+"\n")
 
     ##### Process each region #####
     for region in regions:
-        # Load node table
-        #node_table = gutils.LoadNodeTableFromGBZ(gbz_file, region, reference)
-        node_table = gutils.LoadNodeTableFromGFA("test.gfa") # TODO remove
+        utils.PROGRESS("Processing region {chrom}:{start}-{end}".format(
+                chrom=region[0], start=region[1], end=region[2]
+            ))
+        # Load node table for the region
+        node_table = gutils.LoadNodeTableFromGBZ(gbz_file, region, reference)
 
         # Compute each requested complexity metric
         metric_results = []
@@ -65,8 +64,11 @@ def main(gbz_file: str, output_file: str,
             metric_results.append(ComputeComplexity(node_table, m))
 
         # Output
-        items = region + metric_results
+        items = region + [len(node_table.nodes.keys()), \
+            node_table.GetTotalNodeLength(), node_table.numwalks] + \
+            metric_results
         outf.write("\t".join([str(item) for item in items])+"\n")
+        outf.flush()
     ##### Cleanup #####
     end_time = time.time()
     time_per_region = (end_time - start_time) / len(regions)
@@ -81,7 +83,20 @@ def ComputeComplexity(node_table, metric):
        average path length
     sequniq2: sum_n |n|*p_n*(1-p_n)/|L| where |L| is the 
        average node length
+
+    Parameters
+    ----------
+    node_table : graph_utils.NodeTable
+       Stores info on lengths/walks through each node
+    metric : str
+       Which metric to compute. see description above
+
+    Returns
+    -------
+    complexity : float
+       Complexity score
     """
+    if node_table.numwalks == 0: return None
     complexity = 0
     # Add up value for each node
     for n in node_table.nodes.keys():

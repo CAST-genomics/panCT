@@ -32,6 +32,9 @@ class NodeTable:
     def GetMeanNodeLength(self):
         return np.mean([n.length for n in self.nodes.values()])
 
+    def GetTotalNodeLength(self):
+        return np.sum([n.length for n in self.nodes.values()])
+
 def CheckNodeSeq(seq):
     for char in seq:
         if char.upper() not in ["A","C","G","T","N"]:
@@ -42,7 +45,7 @@ def GetNodesFromWalk(walk_string):
     ws = walk_string.replace(">",":").replace("<",":").strip(":")
     return ws.split(":")
 
-def LoadNodeTableFromGFA(gfa_file):
+def LoadNodeTableFromGFA(gfa_file, exclude_samples=[]):
     nodetable = NodeTable()
 
     # First parse all the nodes
@@ -73,8 +76,10 @@ def LoadNodeTableFromGFA(gfa_file):
             linetype = line.split()[0]
             if linetype != "W":                
                 continue
-            numwalks += 1
             sampid = line.split()[1]
+            if sampid in exclude_samples:
+            	continue
+            numwalks += 1
             hapid = line.split()[2]
             walk = line.split()[6]
             nodes = GetNodesFromWalk(walk)
@@ -89,4 +94,4 @@ def LoadNodeTableFromGBZ(gbz_file, region, reference):
     gfa_file = gbz.ExtractRegionFromGBZ(gbz_file, region, reference)
     if gfa_file is None:
         return None
-    return LoadNodeTableFromGFA(gfa_file.name)
+    return LoadNodeTableFromGFA(gfa_file.name, exclude_samples=[reference])
