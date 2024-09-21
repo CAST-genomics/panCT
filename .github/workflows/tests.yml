@@ -57,11 +57,6 @@ jobs:
       - name: Install dev environment
         run:
           mamba env update -n panct -f dev-env.yml
-          mamba run -n panct git clone https://github.com/jltsiren/gbz-base
-          cd gbz-base
-          mamba run -n panct  cargo build --release
-          mamba run -n panct export PATH=$PATH:${PWD}/target/release
-          cd ..
         if: steps.cache.outputs.cache-hit != 'true'
 
       - name: Try to build panct
