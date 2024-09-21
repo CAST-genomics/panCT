@@ -33,7 +33,7 @@ def complexity(
             "complexity metrics to compute. "
             "Options: " + ",".join(AVAILALBE_METRICS),
         ),
-    ] = "sequniq",
+    ] = "sequniq-normwalk",
     reference: Annotated[
         str, typer.Option("--reference", help="Which sequence to use as the reference")
     ] = "GRCh38",
