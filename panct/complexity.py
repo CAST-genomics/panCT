@@ -78,6 +78,7 @@ def main(gbz_file: str, output_file: str,
     time_per_region = (end_time - start_time) / len(regions)
     sys.stderr.write(f"Time per region\t{time_per_region}\n")
     outf.close()
+    return 0
 
 def ComputeComplexity(node_table, metric):
     """

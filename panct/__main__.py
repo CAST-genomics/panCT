@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 import typer
 from typing_extensions import Annotated
 from .complexity import AVAILALBE_METRICS
@@ -20,8 +21,9 @@ def complexity(
         str, typer.Option("--region-file", help="Bed file of regions to compute complexity over")
     ] = "",
     metrics: Annotated[
-        str, typer.Option("--metrics", help="Comma-separated list of which complexity metrics to compute. "
-                          "Options: " + ",".join(AVAILALBE_METRICS))
+        str, typer.Option("--metrics", help="Comma-separated list of which "
+                                            "complexity metrics to compute. "
+                                            "Options: " + ",".join(AVAILALBE_METRICS))
     ] = "sequniq",
     reference: Annotated[
         str, typer.Option("--reference", help="Which sequence to use as the reference")
@@ -35,8 +37,11 @@ def complexity(
     from .logging import getLogger
 
     log = getLogger(name="complexity", level=verbosity)
-    complexity_main(gbz_file, output_file, region, region_file, 
+    retcode = complexity_main(gbz_file, output_file, 
+        region, region_file, 
         metrics, reference, log)
+    if retcode != 0:
+        typer.Exit(code=retcode)
 
 # Adding dummy command for now
 # Removing this breaks Typer commands?
