@@ -49,8 +49,3 @@ log_cli_date_format = "%Y-%m-%d %H:%M:%S"
 [tool.pyright]
 strictParameterNoneValue = false
 ignore = ["**/tests/**"]
-
-[external]
-dependencies = [
-  "pkg:cargo/github.com/jltsiren/gbz-base",
-]
