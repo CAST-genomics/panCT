@@ -6,9 +6,47 @@ DATADIR = Path(__file__).parent.joinpath("data")
 
 from panct.complexity import *
 from panct.graph_utils import *
+from panct.logging import getLogger
 
-# TODO add tests of main once
+# TODO add more tests of main once
 # add gbz dependencies to test
+
+def test_complexity_main(tmpdir):
+    # Set up defaults
+    gfa_file = ""
+    gbz_file = ""
+    output_file = ""
+    region = ""
+    region_file = ""
+    metrics = "sequniq-normwalk,sequniq-normnode"
+    reference = ""
+    log = getLogger(name="complexity", level="INFO")
+
+    # Error if no GFA or GBZ or both
+    assert main(gfa_file, gbz_file,
+        output_file, region, region_file, metrics, 
+        reference, log) == 1
+    gfa_file = "dummy"
+    gbz_file = "dummy"
+    assert main(gfa_file, gbz_file,
+        output_file, region, region_file, metrics, 
+        reference, log) == 1
+
+    # Process GFA file
+    gbz_file = ""
+    gfa_file = os.path.join(DATADIR, "test.gfa")
+    output_file = str(tmpdir / "test.tab")
+    assert main(gfa_file, gbz_file,
+        output_file, region, region_file, metrics, 
+        reference, log) == 0
+    assert main(gfa_file, gbz_file,
+        output_file, "chr1:1-2", region_file, metrics, 
+        reference, log) == 0
+
+    # Invalid metric
+    assert main(gfa_file, gbz_file,
+        output_file, region, region_file, "xxx", 
+        reference, log) == 1
 
 def test_compute_complexity():
     # Set up node table
