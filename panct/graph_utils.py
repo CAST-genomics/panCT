@@ -6,7 +6,6 @@ import numpy as np
 from typing import List, Optional
 from . import gbz_utils as gbz
 
-
 class Node:
     """
     Stores metadata about a node in the graph
@@ -225,10 +224,3 @@ class NodeTable:
                 walk = line.split()[6]
                 nodes = self.get_nodes_from_walk(walk)
                 self.add_walk(f"{sampid}:{hapid}", nodes)
-
-
-def LoadNodeTableFromGBZ(gbz_file, region, reference):
-    gfa_file = gbz.ExtractRegionFromGBZ(gbz_file, region, reference)
-    if gfa_file is None:
-        return None
-    return NodeTable(gfa_file=gfa_file.name, exclude_samples=[reference])

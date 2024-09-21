@@ -11,7 +11,6 @@ import subprocess
 
 from . import utils as utils
 from . import gbz_utils as gbz
-from . import graph_utils as gutils
 
 AVAILALBE_METRICS = ["sequniq", "sequniq2"]
 
@@ -71,7 +70,7 @@ def main(
             )
         )
         # Load node table for the region
-        node_table = gutils.LoadNodeTableFromGBZ(gbz_file, region, reference)
+        node_table = gbz.load_node_table_from_gbz(gbz_file, region, reference)
 
         # Compute each requested complexity metric
         metric_results = []

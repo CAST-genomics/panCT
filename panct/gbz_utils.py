@@ -7,7 +7,8 @@ import os
 from shutil import which
 import subprocess
 import tempfile
-
+from . import graph_utils as gutils
+from .utils import Region
 
 def ExtractRegionFromGBZ(gbz_file, region, reference):
     tmpfile = tempfile.NamedTemporaryFile(delete=False)
@@ -91,3 +92,28 @@ def CheckGBZFile(gbz_file: str, log: logging.Logger):
             log.critical("Failed to create GBZ index")
             return False
     return True
+
+def load_node_table_from_gbz(gbz_file: str, region: Region,
+        reference: str) -> gutils.NodeTable:
+    """
+    Load a NodeTable for a certain region from a GBZ file
+
+    Parameters
+    ----------
+    gbz_file : str
+        Path to GBZ file
+    region : Region
+        Region to load
+    reference : str
+        ID of reference sequence
+
+    Returns
+    -------
+    node_table : NodeTable
+        NodeTable oject for the region
+    """
+    gfa_file = ExtractRegionFromGBZ(gbz_file, region, reference)
+    if gfa_file is None:
+        return None
+    return gutils.NodeTable(gfa_file=gfa_file.name, 
+        exclude_samples=[reference])
