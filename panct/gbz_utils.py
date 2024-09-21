@@ -38,7 +38,7 @@ def extract_region_from_gbz(gbz_file: str, region: Region, reference: str) -> st
         region.chrom,
         "--interval",
         str(region.start) + ".." + str(region.end),
-        gbz_file,
+        gbz_file + ".db",
     ]
     proc = subprocess.run(cmd, stdout=tmpfile)
     if proc.returncode != 0:
