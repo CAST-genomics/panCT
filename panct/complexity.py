@@ -11,8 +11,9 @@ import subprocess
 
 from . import utils as utils
 from . import gbz_utils as gbz
+from . import graph_utils as gutils
 
-AVAILALBE_METRICS = ["sequniq", "sequniq2"]
+AVAILALBE_METRICS = ["sequniq-normwalk", "sequniq-normnode"]
 
 
 def main(
@@ -24,6 +25,32 @@ def main(
     reference: str,
     log=logging.Logger,
 ):
+    """
+    Compute complexity scores for regions
+    of a pangenome graph
+
+    Parameters
+    ----------
+    gbz_file : str
+        Path to GBZ file
+    output_file : str
+        Path to output file
+    region : str
+        chrom:start-end of region to process
+    region_file : str
+        Path to BED file of regions to process
+    metrics : str
+        Comma-separated list of metrics to compute
+    reference : str
+        Sample ID of reference
+    log : logging.Logger
+        logger object
+
+    Returns
+    -------
+    retcode : int
+        Return code of the program
+    """
     start_time = time.time()
 
     #### Check GBZ file and index #####
@@ -56,10 +83,9 @@ def main(
     outf = open(output_file, "w")
     outf.write(
         "\t".join(
-            ["chrom", "start", "end", "numnodes", "total_length", "numwalks"]
-            + metrics_list
-        )
-        + "\n"
+            ["chrom", "start", "end", "numnodes", \
+                "total_length", "numwalks"] + metrics_list
+        ) + "\n"
     )
 
     ##### Process each region #####
@@ -75,7 +101,7 @@ def main(
         # Compute each requested complexity metric
         metric_results = []
         for m in metrics_list:
-            metric_results.append(ComputeComplexity(node_table, m))
+            metric_results.append(compute_complexity(node_table, m))
 
         # Output
         items = (
@@ -97,13 +123,14 @@ def main(
     return 0
 
 
-def ComputeComplexity(node_table, metric):
+def compute_complexity(node_table : gutils.NodeTable,
+    metric: str) -> float:
     """
     Compute complexity for a node table. Options:
 
-    sequniq: sum_n |n|*p_n*(1-p_n)/|L| where |L| is the
+    sequniq-normwalk: sum_n |n|*p_n*(1-p_n)/|L| where |L| is the
        average walk length
-    sequniq2: sum_n |n|*p_n*(1-p_n)/|L| where |L| is the
+    sequniq-normnode: sum_n |n|*p_n*(1-p_n)/|L| where |L| is the
        average node length
 
     Parameters
@@ -117,22 +144,26 @@ def ComputeComplexity(node_table, metric):
     -------
     complexity : float
        Complexity score
+
+    Raises
+    ------
+    ValueError
+       If invalid metric specified
     """
     if node_table.numwalks == 0:
         return None
     complexity = 0
     # Add up value for each node
     for n in node_table.nodes.keys():
-        if metric == "sequniq" or metric == "sequniq2":
+        if metric == "sequniq-normwalk" or metric == "sequniq-normnode":
             length = node_table.nodes[n].length
             p = len(node_table.nodes[n].samples) / node_table.numwalks
             complexity += length * p * (1 - p)
-        else:
-            log.error(f"Encountered invalid metric {metric}")
-            return None
     # Normalize
-    if metric == "sequniq":
+    if metric == "sequniq-normwalk":
         complexity = complexity / node_table.get_mean_walk_length()
-    elif metric == "sequniq2":
-        complexity = complexity / node_table.get_mean_walk_length()
+    elif metric == "sequniq-normnode":
+        complexity = complexity / node_table.get_mean_node_length()
+    else:
+        raise ValueError(f"Invalid metric {metric}")
     return complexity

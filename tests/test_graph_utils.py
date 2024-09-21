@@ -46,7 +46,7 @@ def test_node_table():
 	nt.add_walk("samp:1", ["n1", "n2"])
 	assert nt.numwalks == 1
 	assert nt.get_mean_walk_length() == 250
-	nt.add_walk("samp:1", ["n1"])
+	nt.add_walk("samp:2", ["n1"])
 	assert nt.numwalks == 2
 	assert nt.get_mean_walk_length() == 225
 
