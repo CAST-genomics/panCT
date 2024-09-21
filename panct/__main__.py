@@ -9,10 +9,13 @@ app = typer.Typer()
 
 @app.command()
 def complexity(
+    output_file: Annotated[str, typer.Option("--out", help="Name of output file")],
+    gfa_file: Annotated[
+        str, typer.Option("--gfa", help="Path to .gfa file of the graph")
+    ] = "",
     gbz_file: Annotated[
         str, typer.Option("--gbz", help="Path to .gbz file of the graph")
-    ],
-    output_file: Annotated[str, typer.Option("--out", help="Name of output file")],
+    ] = "",
     region: Annotated[
         str, typer.Option("--region", help="Region to compute complexity over")
     ] = "",
@@ -44,7 +47,8 @@ def complexity(
 
     log = getLogger(name="complexity", level=verbosity)
     retcode = complexity_main(
-        gbz_file, output_file, region, region_file, metrics, reference, log
+        gfa_file, gbz_file, output_file, region, region_file, 
+        metrics, reference, log
     )
     if retcode != 0:
         typer.Exit(code=retcode)

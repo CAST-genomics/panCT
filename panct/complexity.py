@@ -17,6 +17,7 @@ AVAILALBE_METRICS = ["sequniq-normwalk", "sequniq-normnode"]
 
 
 def main(
+    gfa_file: str,
     gbz_file: str,
     output_file: str,
     region: str,
@@ -29,8 +30,16 @@ def main(
     Compute complexity scores for regions
     of a pangenome graph
 
+    If a GFA file is given, compute complexity
+    on the entire file.
+
+    If a GBZ file is given, must specify a region
+    (or file with list of regions)
+
     Parameters
     ----------
+    gfa_file : str
+        Path to GFA file
     gbz_file : str
         Path to GBZ file
     output_file : str
@@ -53,11 +62,18 @@ def main(
     """
     start_time = time.time()
 
-    #### Check GBZ file and index #####
-    if not gbz.check_gbzbase_installed(log):
+    #### Check files and indices #####
+    if gfa_file != "" and gbz_file != "":
+        log.critical("Cannot specify both a GBZ and GFA file")
         return 1
-    if not gbz.check_gbzfile(gbz_file, log):
+    if gfa_file == "" and gbz_file == "":
+        log.critical("Must specify either GBZ or GFA file")
         return 1
+    if gbz_file != "":
+        if not gbz.check_gbzbase_installed(log):
+            return 1
+        if not gbz.check_gbzfile(gbz_file, log):
+            return 1
 
     #### Check requested metrics #####
     metrics_list = metrics.split(",")
@@ -66,7 +82,42 @@ def main(
             log.critical(f"Encountered invalid metric {m}")
             return 1
 
-    #### Set up list of regions to process #####
+    ##### Set up output file #####
+    outf = open(output_file, "w")
+    header = []
+    if gbz_file != "":
+        header = ["chrom", "start", "end"]
+    header.extend(["numnodes", "total_length", "numwalks"] + \
+        metrics_list)
+    outf.write("\t".join(header)+"\n")
+
+    ##### If GFA, just process the whole graph #####
+    if gfa_file != "":
+        if region != "" or region_file != "":
+            log.warning("Regions are ignored when processing GFA")
+        exclude = []
+        if reference != "": exclude = [reference]
+        node_table = gutils.NodeTable(gfa_file, exclude)
+        metric_results = []
+        for m in metrics_list:
+            metric_results.append(compute_complexity(node_table, m))
+        items = (
+            [
+                len(node_table.nodes.keys()),
+                node_table.get_total_node_length(),
+                node_table.numwalks,
+            ]
+            + metric_results
+        )
+        outf.write("\t".join([str(item) for item in items]) + "\n")
+        outf.flush()
+    end_time = time.time()
+    total_time = (end_time - start_time)
+    sys.stderr.write(f"Total time: \t{total_time}\n")
+    outf.close()
+    return 0
+
+    #### If GBZ: Set up list of regions to process #####
     regions = []
     if region != "":
         regions.append(utils.parse_region_string(region))
@@ -78,15 +129,6 @@ def main(
     if len(regions) == 0:
         log.critical("Did not detect any regions")
         return 1
-
-    ##### Set up output file #####
-    outf = open(output_file, "w")
-    outf.write(
-        "\t".join(
-            ["chrom", "start", "end", "numnodes", \
-                "total_length", "numwalks"] + metrics_list
-        ) + "\n"
-    )
 
     ##### Process each region #####
     for region in regions:
@@ -115,6 +157,7 @@ def main(
         )
         outf.write("\t".join([str(item) for item in items]) + "\n")
         outf.flush()
+
     ##### Cleanup #####
     end_time = time.time()
     time_per_region = (end_time - start_time) / len(regions)
