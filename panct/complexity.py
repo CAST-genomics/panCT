@@ -71,7 +71,7 @@ def main(
             )
         )
         # Load node table for the region
-        node_table = gutils.LoadNodeTableFromGBZ(gbz_file, region, reference, log)
+        node_table = gutils.LoadNodeTableFromGBZ(gbz_file, region, reference)
 
         # Compute each requested complexity metric
         metric_results = []
@@ -83,7 +83,7 @@ def main(
             [region.chrom, region.start, region.end]
             + [
                 len(node_table.nodes.keys()),
-                node_table.GetTotalNodeLength(),
+                node_table.get_total_node_length(),
                 node_table.numwalks,
             ]
             + metric_results
@@ -103,7 +103,7 @@ def ComputeComplexity(node_table, metric):
     Compute complexity for a node table. Options:
 
     sequniq: sum_n |n|*p_n*(1-p_n)/|L| where |L| is the
-       average path length
+       average walk length
     sequniq2: sum_n |n|*p_n*(1-p_n)/|L| where |L| is the
        average node length
 
@@ -133,7 +133,7 @@ def ComputeComplexity(node_table, metric):
             return None
     # Normalize
     if metric == "sequniq":
-        complexity = complexity / node_table.GetMeanPathLength()
+        complexity = complexity / node_table.get_mean_walk_length()
     elif metric == "sequniq2":
-        complexity = complexity / node_table.GetMeanNodeLength()
+        complexity = complexity / node_table.get_mean_walk_length()
     return complexity

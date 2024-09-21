@@ -3,7 +3,7 @@ Utilities for dealing with node tables
 """
 
 import numpy as np
-from typing import List
+from typing import List, Optional
 from . import gbz_utils as gbz
 
 
@@ -13,6 +13,8 @@ class Node:
 
     Attributes
     ----------
+    nodeid : str
+        ID of the node
     length : int
         Length of the sequence at this node
     samples : set of str
@@ -25,7 +27,8 @@ class Node:
         Add a sample to the node
     """
 
-    def __init__(self, length=0):
+    def __init__(self, nodeid, length=0):
+        self.nodeid = nodeid
         self.length = length
         self.samples = set()
 
@@ -52,22 +55,65 @@ class NodeTable:
         Dictionary of nodes, indexed by node ID
     numwalks : int
         Number of walks going through this region
-    path_lengths : list of in
-        List of lengths of paths through this region
+    walk_lengths : list of int
+        List of lengths of walks through this region
 
     Methods
     -------
-    get_path_length(nodelist=[])
+    load_from_gfa(gfafile)
+        Generate NodeTable from GFA file
+    add_node(node)
+        Add node to the table
+    add_walk(sampid, nodelist)
+        Add a walk to the node table
+    get_walk_length(nodelist=[])
         Get the total length of a walk
         through the given list of nodes
+    get_mean_walk_length()
+        Get mean length of all walks
+    get_mean_node_length()
+        Get mean length of all nodes
+    get_total_node_length()
+        Get total length of all nodes
+    get_nodes_from_walk(walk_string)
+        Get list of nodes from the walk
     """
 
-    def __init__(self):
-        self.nodes = {}  # node ID-> Node
+    def __init__(self, gfa_file: Optional[str] = None,
+            exclude_samples: Optional[List[str]] = []):
+        self.nodes = {} # node ID-> Node
         self.numwalks = 0
-        self.path_lengths = []
+        self.walk_lengths = []
+        if gfa_file is not None:
+            self.load_from_gfa(gfa_file, exclude_samples)
 
-    def get_path_length(self, nodelist: List[Node]) -> int:
+    def add_node(self, node: Node):
+        """
+        Add a node to the node table
+
+        Parameters
+        ----------
+        node : Node
+            Node to add
+        """
+        self.nodes[node.nodeid] = node
+
+    def add_walk(self, sampid: str, nodelist: List[Node]):
+        """
+        Add a walk to the node table
+
+        Parameters
+        ----------
+        sampid : str
+            ID of the walk
+        nodelist : list of Node
+        """
+        self.walk_lengths.append(self.get_walk_length(nodelist))
+        for n in nodelist:
+            self.nodes[n].add_sample(sampid)
+        self.numwalks += 1
+
+    def get_walk_length(self, nodelist: List[Node]) -> int:
         """
         Get the total length of a walk
         through the given list of nodes
@@ -89,80 +135,100 @@ class NodeTable:
         """
         length = 0
         for n in nodelist:
-            if n not in self.nodes.values():
+            if n not in self.nodes.keys():
                 raise ValueError(f"Encountered unknown node {n}")
             length += self.nodes[n].length
         return length
 
-    def GetMeanPathLength(self):
-        return np.mean(self.path_lengths)
+    def get_mean_walk_length(self) -> float:
+        """
+        Get mean length of all walks
 
-    def GetMeanNodeLength(self):
+        Returns
+        -------
+        mean_walk_length : float
+            Returns np.nan if there are no walks
+        """
+        if self.numwalks == 0: return np.nan
+        return np.mean(self.walk_lengths)
+
+    def get_mean_node_length(self) -> float:
+        """
+        Get mean length of all nodes
+
+        Returns
+        -------
+        mean_node_length : float
+            Returns np.nan if there are no walks
+        """
+        if len(self.nodes.keys()) == 0: return np.nan
         return np.mean([n.length for n in self.nodes.values()])
 
-    def GetTotalNodeLength(self):
+    def get_total_node_length(self) -> int:
+        """
+        Get total length of all nodes
+
+        Returns
+        -------
+        total_walk_length : int
+        """
         return np.sum([n.length for n in self.nodes.values()])
 
+    def get_nodes_from_walk(self, walk_string: str) -> List[str]:
+        """
+        Get list of nodes from a walk string
 
-def CheckNodeSeq(seq):
-    for char in seq:
-        if char.upper() not in ["A", "C", "G", "T", "N"]:
-            return False
-    return True
+        Parameters
+        ----------
+        walk_string : str
+            Walk string from a GFA file
 
+        Returns
+        -------
+        nodelist = list of str
+            List of node Ids
+        """
+        ws = walk_string.replace(">", ":").replace("<", ":").strip(":")
+        return ws.split(":")
 
-def GetNodesFromWalk(walk_string):
-    ws = walk_string.replace(">", ":").replace("<", ":").strip(":")
-    return ws.split(":")
+    def load_from_gfa(self, gfa_file: str,
+        exclude_samples: List[str] =[]):
+        # First parse all the nodes
+        with open(gfa_file, "r") as f:
+            for line in f:
+                linetype = line.split()[0]
+                if linetype != "S":
+                    continue
+                nodeid = line.split()[1]
+                nodelen = 0
+                nodeseq = line.strip().split()[2]
+                if nodeseq.strip() != "*":
+                    nodelen = len(nodeseq)
+                else:
+                    for var in line.strip().split()[3:]:
+                        if var.startswith("LN"):
+                            nodelen = int(var.split(":")[2])
+                if nodelen == 0:
+                    raise ValueError(f"Could not determine node length for {nodeid}")
+                self.add_node(Node(nodeid, length=nodelen))
 
-
-def LoadNodeTableFromGFA(gfa_file, log, exclude_samples=[]):
-    nodetable = NodeTable()
-
-    # First parse all the nodes
-    with open(gfa_file, "r") as f:
-        for line in f:
-            linetype = line.split()[0]
-            if linetype != "S":
-                continue
-            nodeid = line.split()[1]
-            nodelen = 0
-            nodeseq = line.strip().split()[2]
-            if CheckNodeSeq(nodeseq):
-                nodelen = len(nodeseq)
-            else:
-                for var in line.strip().split()[3:]:
-                    if var.startswith("LN"):
-                        length = int(var.split(":")[2])
-            if nodelen == 0:
-                raise ValueError(f"Could not determine node length for {nodeid}")
-            nodetable.nodes[nodeid] = Node(length=nodelen)
-
-    # Second pass to get the walks
-    numwalks = 0
-    path_lengths = []
-    with open(gfa_file, "r") as f:
-        for line in f:
-            linetype = line.split()[0]
-            if linetype != "W":
-                continue
-            sampid = line.split()[1]
-            if sampid in exclude_samples:
-                continue
-            numwalks += 1
-            hapid = line.split()[2]
-            walk = line.split()[6]
-            nodes = GetNodesFromWalk(walk)
-            path_lengths.append(nodetable.get_path_length(nodes))
-            for n in nodes:
-                nodetable.nodes[n].add_sample(f"{sampid}:{hapid}")
-    nodetable.numwalks = numwalks
-    nodetable.path_lengths = path_lengths
-    return nodetable
+        # Second pass to get the walks
+        with open(gfa_file, "r") as f:
+            for line in f:
+                linetype = line.split()[0]
+                if linetype != "W":
+                    continue
+                sampid = line.split()[1]
+                if sampid in exclude_samples:
+                    continue
+                hapid = line.split()[2]
+                walk = line.split()[6]
+                nodes = self.get_nodes_from_walk(walk)
+                self.add_walk(f"{sampid}:{hapid}", nodes)
 
 
-def LoadNodeTableFromGBZ(gbz_file, region, reference, log):
+def LoadNodeTableFromGBZ(gbz_file, region, reference):
     gfa_file = gbz.ExtractRegionFromGBZ(gbz_file, region, reference)
     if gfa_file is None:
         return None
-    return LoadNodeTableFromGFA(gfa_file.name, log, exclude_samples=[reference])
+    return NodeTable(gfa_file=gfa_file.name, exclude_samples=[reference])
