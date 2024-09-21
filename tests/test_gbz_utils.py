@@ -14,3 +14,8 @@ def test_check_gbzfile():
 
     # Check existing file
     assert check_gbzfile(os.path.join(DATADIR, "test.gbz"), log)
+
+    # Check existing file but not indexed
+    # TODO - add rest of checks once add gbz-base to
+    # list of test dependencies
+    check_gbzfile(os.path.join(DATADIR, "test_noseq.gbz"), log)

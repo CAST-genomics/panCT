@@ -66,7 +66,7 @@ def check_gbzbase_installed(log: logging.Logger):
     return True
 
 
-def indez_gbz(gbz_file: str):
+def index_gbz(gbz_file: str):
     """
     Index the GBZ file with gbz2db
 
@@ -132,6 +132,6 @@ def load_node_table_from_gbz(gbz_file: str, region: Region,
     """
     gfa_file = extract_region_from_gbz(gbz_file, region, reference)
     if gfa_file is None:
-        return None
+        return gutils.NodeTable()
     return gutils.NodeTable(gfa_file=gfa_file, 
         exclude_samples=[reference])
