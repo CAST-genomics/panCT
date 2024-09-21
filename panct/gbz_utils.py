@@ -10,7 +10,25 @@ import tempfile
 from . import graph_utils as gutils
 from .utils import Region
 
-def ExtractRegionFromGBZ(gbz_file, region, reference):
+def extract_region_from_gbz(gbz_file: str, region: Region, 
+    reference: str) -> str:
+    """
+    Extract GFA for a region from an indexed GBZ file
+
+    Parameters
+    ----------
+    gbz_file : str
+        Path to GBZ file. Must be indexed
+    region : Region
+        Region to extract
+    reference : str
+        Sample to use as reference
+
+    Returns
+    -------
+    gfa_file : str
+        Path to GFA file
+    """
     tmpfile = tempfile.NamedTemporaryFile(delete=False)
     cmd = [
         "query",
@@ -26,10 +44,10 @@ def ExtractRegionFromGBZ(gbz_file, region, reference):
     if proc.returncode != 0:
         return None
     else:
-        return tmpfile
+        return tmpfile.name
 
 
-def CheckGBZBaseInstalled(log):
+def check_gbzbase_installed(log: logging.Logger):
     """
     Check that gbz2db and query from
     gbz-base are installed
@@ -48,7 +66,7 @@ def CheckGBZBaseInstalled(log):
     return True
 
 
-def IndexGBZ(gbz_file: str):
+def indez_gbz(gbz_file: str):
     """
     Index the GBZ file with gbz2db
 
@@ -67,7 +85,7 @@ def IndexGBZ(gbz_file: str):
     return proc.returncode == 0
 
 
-def CheckGBZFile(gbz_file: str, log: logging.Logger):
+def check_gbzfile(gbz_file: str, log: logging.Logger):
     """
     Check if the GBZ file exists and is
     indexed by GBZ-Base
@@ -88,7 +106,7 @@ def CheckGBZFile(gbz_file: str, log: logging.Logger):
         return False
     if not os.path.exists(gbz_file + ".db"):
         log.info(f"{gbz_file}.db does not exist. Attempting to create")
-        if not IndexGBZ(gbz_file):
+        if not index_gbz(gbz_file):
             log.critical("Failed to create GBZ index")
             return False
     return True
@@ -112,8 +130,8 @@ def load_node_table_from_gbz(gbz_file: str, region: Region,
     node_table : NodeTable
         NodeTable oject for the region
     """
-    gfa_file = ExtractRegionFromGBZ(gbz_file, region, reference)
+    gfa_file = extract_region_from_gbz(gbz_file, region, reference)
     if gfa_file is None:
         return None
-    return gutils.NodeTable(gfa_file=gfa_file.name, 
+    return gutils.NodeTable(gfa_file=gfa_file, 
         exclude_samples=[reference])

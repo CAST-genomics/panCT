@@ -27,9 +27,9 @@ def main(
     start_time = time.time()
 
     #### Check GBZ file and index #####
-    if not gbz.CheckGBZBaseInstalled(log):
+    if not gbz.check_gbzbase_installed(log):
         return 1
-    if not gbz.CheckGBZFile(gbz_file, log):
+    if not gbz.check_gbzfile(gbz_file, log):
         return 1
 
     #### Check requested metrics #####
