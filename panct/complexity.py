@@ -167,10 +167,11 @@ def compute_complexity(node_table: gutils.NodeTable, metric: str) -> float:
     """
     Compute complexity for a node table. Options:
 
-    sequniq-normwalk: sum_n |n|*p_n*(1-p_n)/|L| where |L| is the
-       average walk length
-    sequniq-normnode: sum_n |n|*p_n*(1-p_n)/|L| where |L| is the
-       average node length
+    sequniq-normwalk: sum_n  len(n)*p_n*(1-p_n)/L
+       where L is the average walk length
+
+    sequniq-normnode: sum_n len(n)*p_n*(1-p_n)/L
+       where L is the average node length
 
     Parameters
     ----------
