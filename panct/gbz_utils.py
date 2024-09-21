@@ -11,8 +11,8 @@ import tempfile
 def ExtractRegionFromGBZ(gbz_file, region, reference):
     tmpfile = tempfile.NamedTemporaryFile(delete=False)
     cmd = ["query", "--sample", reference, \
-        "--contig", region[0],
-        "--interval", str(region[1])+".."+str(region[2]), \
+        "--contig", region.chrom,
+        "--interval", str(region.start)+".."+str(region.end), \
         gbz_file]
     proc = subprocess.run(cmd, stdout=tmpfile)
     if proc.returncode != 0:

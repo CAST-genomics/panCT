@@ -36,15 +36,12 @@ def main(gbz_file: str, output_file: str,
     #### Set up list of regions to process #####
     regions = []
     if region != "":
-        region = utils.ParseRegionString(region, log)
-        if region is None:
-            return 1
-        else: regions.append(region)
+        regions.append(utils.parse_region_string(region))
     if region_file != "":
         if not os.path.exists(region_file):
             log.critical(f"Could not find {region_file}")
             return 1
-        regions.extend(utils.ParseRegionsFile(region_file))
+        regions.extend(utils.parse_regions_file(region_file))
     if len(regions) == 0:
         log.critical("Did not detect any regions")
         return 1
@@ -57,7 +54,7 @@ def main(gbz_file: str, output_file: str,
     ##### Process each region #####
     for region in regions:
         log.info("Processing region {chrom}:{start}-{end}".format(
-                chrom=region[0], start=region[1], end=region[2]
+                chrom=region.chrom, start=region.start, end=region.end
             ))
         # Load node table for the region
         node_table = gutils.LoadNodeTableFromGBZ(gbz_file, region, reference, log)
@@ -68,7 +65,8 @@ def main(gbz_file: str, output_file: str,
             metric_results.append(ComputeComplexity(node_table, m))
 
         # Output
-        items = region + [len(node_table.nodes.keys()), \
+        items = [region.chrom, region.start, region.end] + \
+            [len(node_table.nodes.keys()), \
             node_table.GetTotalNodeLength(), node_table.numwalks] + \
             metric_results
         outf.write("\t".join([str(item) for item in items])+"\n")
