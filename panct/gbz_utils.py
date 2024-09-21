@@ -8,18 +8,26 @@ from shutil import which
 import subprocess
 import tempfile
 
+
 def ExtractRegionFromGBZ(gbz_file, region, reference):
     tmpfile = tempfile.NamedTemporaryFile(delete=False)
-    cmd = ["query", "--sample", reference, \
-        "--contig", region.chrom,
-        "--interval", str(region.start)+".."+str(region.end), \
-        gbz_file]
+    cmd = [
+        "query",
+        "--sample",
+        reference,
+        "--contig",
+        region.chrom,
+        "--interval",
+        str(region.start) + ".." + str(region.end),
+        gbz_file,
+    ]
     proc = subprocess.run(cmd, stdout=tmpfile)
     if proc.returncode != 0:
         return None
     else:
         return tmpfile
-    
+
+
 def CheckGBZBaseInstalled(log):
     """
     Check that gbz2db and query from
@@ -38,6 +46,7 @@ def CheckGBZBaseInstalled(log):
         return False
     return True
 
+
 def IndexGBZ(gbz_file: str):
     """
     Index the GBZ file with gbz2db
@@ -55,6 +64,7 @@ def IndexGBZ(gbz_file: str):
     cmd = ["gbz2db", gbz_file]
     proc = subprocess.run(cmd, stdout=subprocess.PIPE)
     return proc.returncode == 0
+
 
 def CheckGBZFile(gbz_file: str, log: logging.Logger):
     """

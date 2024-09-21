@@ -6,6 +6,7 @@ import numpy as np
 from typing import List
 from . import gbz_utils as gbz
 
+
 class Node:
     """
     Stores metadata about a node in the graph
@@ -23,6 +24,7 @@ class Node:
     add_sample(sampid)
         Add a sample to the node
     """
+
     def __init__(self, length=0):
         self.length = length
         self.samples = set()
@@ -37,6 +39,7 @@ class Node:
             ID of the sample (haplotype) to add
         """
         self.samples.add(sampid)
+
 
 class NodeTable:
     """
@@ -56,14 +59,15 @@ class NodeTable:
     -------
     get_path_length(nodelist=[])
         Get the total length of a walk
-        through the given list of nodes 
+        through the given list of nodes
     """
+
     def __init__(self):
-        self.nodes = {} # node ID-> Node
+        self.nodes = {}  # node ID-> Node
         self.numwalks = 0
         self.path_lengths = []
 
-    def get_path_length(self, nodelist : List[Node]) -> int:
+    def get_path_length(self, nodelist: List[Node]) -> int:
         """
         Get the total length of a walk
         through the given list of nodes
@@ -81,7 +85,7 @@ class NodeTable:
         Raises
         ------
         ValueError
-            If we encounter a node ID not in the NodeTable    
+            If we encounter a node ID not in the NodeTable
         """
         length = 0
         for n in nodelist:
@@ -99,15 +103,18 @@ class NodeTable:
     def GetTotalNodeLength(self):
         return np.sum([n.length for n in self.nodes.values()])
 
+
 def CheckNodeSeq(seq):
     for char in seq:
-        if char.upper() not in ["A","C","G","T","N"]:
+        if char.upper() not in ["A", "C", "G", "T", "N"]:
             return False
     return True
 
+
 def GetNodesFromWalk(walk_string):
-    ws = walk_string.replace(">",":").replace("<",":").strip(":")
+    ws = walk_string.replace(">", ":").replace("<", ":").strip(":")
     return ws.split(":")
+
 
 def LoadNodeTableFromGFA(gfa_file, log, exclude_samples=[]):
     nodetable = NodeTable()
@@ -137,7 +144,7 @@ def LoadNodeTableFromGFA(gfa_file, log, exclude_samples=[]):
     with open(gfa_file, "r") as f:
         for line in f:
             linetype = line.split()[0]
-            if linetype != "W":                
+            if linetype != "W":
                 continue
             sampid = line.split()[1]
             if sampid in exclude_samples:
@@ -152,6 +159,7 @@ def LoadNodeTableFromGFA(gfa_file, log, exclude_samples=[]):
     nodetable.numwalks = numwalks
     nodetable.path_lengths = path_lengths
     return nodetable
+
 
 def LoadNodeTableFromGBZ(gbz_file, region, reference, log):
     gfa_file = gbz.ExtractRegionFromGBZ(gbz_file, region, reference)
