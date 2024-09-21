@@ -111,11 +111,11 @@ def main(
         )
         outf.write("\t".join([str(item) for item in items]) + "\n")
         outf.flush()
-    end_time = time.time()
-    total_time = (end_time - start_time)
-    sys.stderr.write(f"Total time: \t{total_time}\n")
-    outf.close()
-    return 0
+        end_time = time.time()
+        total_time = (end_time - start_time)
+        sys.stderr.write(f"Total time: \t{total_time}\n")
+        outf.close()
+        return 0
 
     #### If GBZ: Set up list of regions to process #####
     regions = []
