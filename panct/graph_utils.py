@@ -89,8 +89,8 @@ def LoadNodeTableFromGFA(gfa_file, log, exclude_samples=[]):
     nodetable.path_lengths = path_lengths
     return nodetable
 
-def LoadNodeTableFromGBZ(gbz_file, region, reference):
+def LoadNodeTableFromGBZ(gbz_file, region, reference, log):
     gfa_file = gbz.ExtractRegionFromGBZ(gbz_file, region, reference)
     if gfa_file is None:
         return None
-    return LoadNodeTableFromGFA(gfa_file.name, exclude_samples=[reference])
+    return LoadNodeTableFromGFA(gfa_file.name, log, exclude_samples=[reference])

@@ -60,7 +60,7 @@ def main(gbz_file: str, output_file: str,
                 chrom=region[0], start=region[1], end=region[2]
             ))
         # Load node table for the region
-        node_table = gutils.LoadNodeTableFromGBZ(gbz_file, region, reference)
+        node_table = gutils.LoadNodeTableFromGBZ(gbz_file, region, reference, log)
 
         # Compute each requested complexity metric
         metric_results = []
