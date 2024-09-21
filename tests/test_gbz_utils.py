@@ -6,6 +6,7 @@ from panct.logging import getLogger
 
 DATADIR = Path(__file__).parent.joinpath("data")
 
+
 def test_check_gbzfile():
     log = getLogger(name="complexity", level="INFO")
 

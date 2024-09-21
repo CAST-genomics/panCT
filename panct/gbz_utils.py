@@ -10,8 +10,8 @@ import tempfile
 from . import graph_utils as gutils
 from .utils import Region
 
-def extract_region_from_gbz(gbz_file: str, region: Region, 
-    reference: str) -> str:
+
+def extract_region_from_gbz(gbz_file: str, region: Region, reference: str) -> str:
     """
     Extract GFA for a region from an indexed GBZ file
 
@@ -111,8 +111,10 @@ def check_gbzfile(gbz_file: str, log: logging.Logger):
             return False
     return True
 
-def load_node_table_from_gbz(gbz_file: str, region: Region,
-        reference: str) -> gutils.NodeTable:
+
+def load_node_table_from_gbz(
+    gbz_file: str, region: Region, reference: str
+) -> gutils.NodeTable:
     """
     Load a NodeTable for a certain region from a GBZ file
 
@@ -133,5 +135,4 @@ def load_node_table_from_gbz(gbz_file: str, region: Region,
     gfa_file = extract_region_from_gbz(gbz_file, region, reference)
     if gfa_file is None:
         return gutils.NodeTable()
-    return gutils.NodeTable(gfa_file=gfa_file, 
-        exclude_samples=[reference])
+    return gutils.NodeTable(gfa_file=gfa_file, exclude_samples=[reference])

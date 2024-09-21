@@ -11,6 +11,7 @@ from panct.logging import getLogger
 # TODO add more tests of main once
 # add gbz dependencies to test
 
+
 def test_complexity_main(tmpdir):
     # Set up defaults
     gfa_file = ""
@@ -23,30 +24,74 @@ def test_complexity_main(tmpdir):
     log = getLogger(name="complexity", level="INFO")
 
     # Error if no GFA or GBZ or both
-    assert main(gfa_file, gbz_file,
-        output_file, region, region_file, metrics, 
-        reference, log) == 1
+    assert (
+        main(
+            gfa_file,
+            gbz_file,
+            output_file,
+            region,
+            region_file,
+            metrics,
+            reference,
+            log,
+        )
+        == 1
+    )
     gfa_file = "dummy"
     gbz_file = "dummy"
-    assert main(gfa_file, gbz_file,
-        output_file, region, region_file, metrics, 
-        reference, log) == 1
+    assert (
+        main(
+            gfa_file,
+            gbz_file,
+            output_file,
+            region,
+            region_file,
+            metrics,
+            reference,
+            log,
+        )
+        == 1
+    )
 
     # Process GFA file
     gbz_file = ""
     gfa_file = os.path.join(DATADIR, "test.gfa")
     output_file = str(tmpdir / "test.tab")
-    assert main(gfa_file, gbz_file,
-        output_file, region, region_file, metrics, 
-        reference, log) == 0
-    assert main(gfa_file, gbz_file,
-        output_file, "chr1:1-2", region_file, metrics, 
-        reference, log) == 0
+    assert (
+        main(
+            gfa_file,
+            gbz_file,
+            output_file,
+            region,
+            region_file,
+            metrics,
+            reference,
+            log,
+        )
+        == 0
+    )
+    assert (
+        main(
+            gfa_file,
+            gbz_file,
+            output_file,
+            "chr1:1-2",
+            region_file,
+            metrics,
+            reference,
+            log,
+        )
+        == 0
+    )
 
     # Invalid metric
-    assert main(gfa_file, gbz_file,
-        output_file, region, region_file, "xxx", 
-        reference, log) == 1
+    assert (
+        main(
+            gfa_file, gbz_file, output_file, region, region_file, "xxx", reference, log
+        )
+        == 1
+    )
+
 
 def test_compute_complexity():
     # Set up node table
@@ -66,5 +111,5 @@ def test_compute_complexity():
 
     # Add another walk
     nt.add_walk("samp:2", ["n1"])
-    assert compute_complexity(nt, "sequniq-normwalk") == 0.5*(1-0.5)/1.5
-    assert compute_complexity(nt, "sequniq-normnode") == 0.5*(1-0.5)/1
+    assert compute_complexity(nt, "sequniq-normwalk") == 0.5 * (1 - 0.5) / 1.5
+    assert compute_complexity(nt, "sequniq-normnode") == 0.5 * (1 - 0.5) / 1

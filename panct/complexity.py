@@ -87,32 +87,29 @@ def main(
     header = []
     if gbz_file != "":
         header = ["chrom", "start", "end"]
-    header.extend(["numnodes", "total_length", "numwalks"] + \
-        metrics_list)
-    outf.write("\t".join(header)+"\n")
+    header.extend(["numnodes", "total_length", "numwalks"] + metrics_list)
+    outf.write("\t".join(header) + "\n")
 
     ##### If GFA, just process the whole graph #####
     if gfa_file != "":
         if region != "" or region_file != "":
             log.warning("Regions are ignored when processing GFA")
         exclude = []
-        if reference != "": exclude = [reference]
+        if reference != "":
+            exclude = [reference]
         node_table = gutils.NodeTable(gfa_file, exclude)
         metric_results = []
         for m in metrics_list:
             metric_results.append(compute_complexity(node_table, m))
-        items = (
-            [
-                len(node_table.nodes.keys()),
-                node_table.get_total_node_length(),
-                node_table.numwalks,
-            ]
-            + metric_results
-        )
+        items = [
+            len(node_table.nodes.keys()),
+            node_table.get_total_node_length(),
+            node_table.numwalks,
+        ] + metric_results
         outf.write("\t".join([str(item) for item in items]) + "\n")
         outf.flush()
         end_time = time.time()
-        total_time = (end_time - start_time)
+        total_time = end_time - start_time
         sys.stderr.write(f"Total time: \t{total_time}\n")
         outf.close()
         return 0
@@ -166,8 +163,7 @@ def main(
     return 0
 
 
-def compute_complexity(node_table : gutils.NodeTable,
-    metric: str) -> float:
+def compute_complexity(node_table: gutils.NodeTable, metric: str) -> float:
     """
     Compute complexity for a node table. Options:
 

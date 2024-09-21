@@ -6,6 +6,7 @@ import numpy as np
 from typing import List, Optional
 from . import gbz_utils as gbz
 
+
 class Node:
     """
     Stores metadata about a node in the graph
@@ -78,9 +79,10 @@ class NodeTable:
         Get list of nodes from the walk
     """
 
-    def __init__(self, gfa_file: Optional[str] = None,
-            exclude_samples: Optional[List[str]] = []):
-        self.nodes = {} # node ID-> Node
+    def __init__(
+        self, gfa_file: Optional[str] = None, exclude_samples: Optional[List[str]] = []
+    ):
+        self.nodes = {}  # node ID-> Node
         self.numwalks = 0
         self.walk_lengths = []
         if gfa_file is not None:
@@ -148,7 +150,8 @@ class NodeTable:
         mean_walk_length : float
             Returns np.nan if there are no walks
         """
-        if self.numwalks == 0: return np.nan
+        if self.numwalks == 0:
+            return np.nan
         return np.mean(self.walk_lengths)
 
     def get_mean_node_length(self) -> float:
@@ -160,7 +163,8 @@ class NodeTable:
         mean_node_length : float
             Returns np.nan if there are no walks
         """
-        if len(self.nodes.keys()) == 0: return np.nan
+        if len(self.nodes.keys()) == 0:
+            return np.nan
         return np.mean([n.length for n in self.nodes.values()])
 
     def get_total_node_length(self) -> int:
@@ -190,8 +194,7 @@ class NodeTable:
         ws = walk_string.replace(">", ":").replace("<", ":").strip(":")
         return ws.split(":")
 
-    def load_from_gfa(self, gfa_file: str,
-        exclude_samples: List[str] =[]):
+    def load_from_gfa(self, gfa_file: str, exclude_samples: List[str] = []):
         # First parse all the nodes
         with open(gfa_file, "r") as f:
             for line in f:

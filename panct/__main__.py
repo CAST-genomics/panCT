@@ -47,8 +47,7 @@ def complexity(
 
     log = getLogger(name="complexity", level=verbosity)
     retcode = complexity_main(
-        gfa_file, gbz_file, output_file, region, region_file, 
-        metrics, reference, log
+        gfa_file, gbz_file, output_file, region, region_file, metrics, reference, log
     )
     if retcode != 0:
         typer.Exit(code=retcode)
