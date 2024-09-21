@@ -5,12 +5,6 @@ Utilities for panct package
 import re
 import sys
 
-def PROGRESS(msg):
-    sys.stderr.write("[panct] PROGRESS: " + msg.strip()+"\n")
-
-def WARNING(msg):
-    sys.stderr.write("[panct] WARNING: " + msg.strip()+"\n")
-
 def ParseRegionsFile(region_file):
     """
     Extract list of regions from BED file
@@ -35,7 +29,7 @@ def ParseRegionsFile(region_file):
             regions_list.append([chrom, start, end])
     return regions_list
 
-def ParseRegionString(region):
+def ParseRegionString(region, log):
     """
     Extract chrom, start, end from
     coordinate string
@@ -60,6 +54,6 @@ def ParseRegionString(region):
     start = int(region.split(":")[1].split("-")[0])
     end = int(region.split(":")[1].split("-")[1])
     if start >= end:
-        WARNING(r"Problem parsing coordinates {coords}. start>=end")
+        log.critical(r"Problem parsing coordinates {coords}. start>=end")
         return None
     return [chrom, start, end]

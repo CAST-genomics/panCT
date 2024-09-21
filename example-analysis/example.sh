@@ -3,7 +3,7 @@
 # Get complexity for an example region
 panct complexity --gbz ../testdata/hprc-v1.1-mc-grch38.gbz \
 	--region chr11:119077050-119178859 --out test.tab \
-	--metrics sequniq,sequniq2
+	--metrics sequniq,sequniq2 
 
 # Make windows across hg38
 bedtools makewindows -g hg38.txt -w 100000 > hg38_windows_100kb.bed

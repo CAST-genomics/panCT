@@ -3,7 +3,6 @@ Utilities for extracting info from GFA
 """
 
 from . import gbz_utils as gbz
-from .utils import WARNING
 import numpy as np
 
 class Node:
@@ -45,7 +44,7 @@ def GetNodesFromWalk(walk_string):
     ws = walk_string.replace(">",":").replace("<",":").strip(":")
     return ws.split(":")
 
-def LoadNodeTableFromGFA(gfa_file, exclude_samples=[]):
+def LoadNodeTableFromGFA(gfa_file, log, exclude_samples=[]):
     nodetable = NodeTable()
 
     # First parse all the nodes
@@ -64,7 +63,7 @@ def LoadNodeTableFromGFA(gfa_file, exclude_samples=[]):
                     if var.startswith("LN"):
                         length = int(var.split(":")[2])
             if nodelen == 0:
-                WARNING(f"Could not determine node length for {nodeid}")
+                log.error(f"Could not determine node length for {nodeid}")
                 return None
             nodetable.nodes[nodeid] = Node(length=nodelen)
 

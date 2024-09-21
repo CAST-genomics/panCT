@@ -3,6 +3,7 @@ Compute complexity scores for regions
 of a pangenome graph
 """
 
+import logging
 import os
 import sys
 import time
@@ -16,34 +17,37 @@ AVAILALBE_METRICS = ["sequniq","sequniq2"]
 
 def main(gbz_file: str, output_file: str, 
     region: str, region_file: str, metrics: str,
-    reference: str):
+    reference: str, log = logging.Logger):
     start_time = time.time()
 
     #### Check GBZ file and index #####
-    if not gbz.CheckGBZBaseInstalled():
+    if not gbz.CheckGBZBaseInstalled(log):
         return 1
-    if not gbz.CheckGBZFile(gbz_file):
+    if not gbz.CheckGBZFile(gbz_file, log):
         return 1
 
     #### Check requested metrics #####
     metrics_list = metrics.split(",")
     for m in metrics_list:
         if m not in AVAILALBE_METRICS:
-            utils.WARNING(f"Encountered invalid metric {m}")
+            log.critical(f"Encountered invalid metric {m}")
             return 1
 
     #### Set up list of regions to process #####
     regions = []
     if region != "":
-        region = utils.ParseRegionString(region)
+        region = utils.ParseRegionString(region, log)
         if region is None:
             return 1
         else: regions.append(region)
     if region_file != "":
         if not os.path.exists(region_file):
-            utils.WARNING(f"Could not find {region_file}")
+            log.critical(f"Could not find {region_file}")
             return 1
         regions.extend(utils.ParseRegionsFile(region_file))
+    if len(regions) == 0:
+        log.critical("Did not detect any regions")
+        return 1
 
     ##### Set up output file #####
     outf = open(output_file, "w")
@@ -52,7 +56,7 @@ def main(gbz_file: str, output_file: str,
 
     ##### Process each region #####
     for region in regions:
-        utils.PROGRESS("Processing region {chrom}:{start}-{end}".format(
+        log.info("Processing region {chrom}:{start}-{end}".format(
                 chrom=region[0], start=region[1], end=region[2]
             ))
         # Load node table for the region
@@ -105,7 +109,7 @@ def ComputeComplexity(node_table, metric):
             p = len(node_table.nodes[n].samples)/node_table.numwalks
             complexity += length*p*(1-p)
         else:
-            utils.WARNING(f"Encountered invalid metric {metric}")
+            log.error(f"Encountered invalid metric {metric}")
             return None
     # Normalize
     if metric == "sequniq":

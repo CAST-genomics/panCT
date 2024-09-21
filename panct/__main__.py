@@ -25,22 +25,24 @@ def complexity(
     ] = "sequniq",
     reference: Annotated[
         str, typer.Option("--reference", help="Which sequence to use as the reference")
-    ] = "GRCh38"
+    ] = "GRCh38",
+    verbosity: str = "INFO"
 ):
     """
     Compute complexity scores
     """
     from .complexity import main as complexity_main
+    from .logging import getLogger
+
+    log = getLogger(name="complexity", level=verbosity)
     complexity_main(gbz_file, output_file, region, region_file, 
-        metrics, reference)
+        metrics, reference, log)
 
+# Adding dummy command for now
+# Removing this breaks Typer commands?
 @app.command()
-def map(gfa_file: str, output_file: str):
-    """
-    Generate a node-map file
-    """
-    typer.echo("Generating")
-
+def map():
+    print("Not implemented")
 
 typer_click_object = typer.main.get_command(app)
 if __name__ == "__main__":
