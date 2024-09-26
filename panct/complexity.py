@@ -13,7 +13,7 @@ from . import utils as utils
 from . import gbz_utils as gbz
 from . import graph_utils as gutils
 
-AVAILALBE_METRICS = ["sequniq-normwalk", "sequniq-normnode"]
+AVAILABLE_METRICS = ["sequniq-normwalk", "sequniq-normnode"]
 
 
 def main(
