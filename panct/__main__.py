@@ -2,7 +2,7 @@
 
 import typer
 from typing_extensions import Annotated
-from .complexity import AVAILALBE_METRICS
+from .complexity import AVAILABLE_METRICS
 
 app = typer.Typer()
 
