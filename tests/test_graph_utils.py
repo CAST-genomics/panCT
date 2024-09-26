@@ -50,7 +50,7 @@ def test_node_table():
     assert nt.get_mean_walk_length() == 225
 
     # Load from GFA with no seqs
-    nt = NodeTable(gfa_file=os.path.join(DATADIR, "test_noseq.gfa"))
+    nt = NodeTable(gfa_file=DATADIR/"test_noseq.gfa")
     assert nt.get_mean_walk_length() == 95 / 4
     assert nt.numwalks == 4
     nt = NodeTable(
