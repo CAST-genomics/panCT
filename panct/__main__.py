@@ -10,11 +10,13 @@ app = typer.Typer()
 @app.command()
 def complexity(
     output_file: Annotated[str, typer.Option("--out", help="Name of output file")],
-    gfa_file: Annotated[
-        str, typer.Option("--gfa", help="Path to .gfa file of the graph")
-    ] = "",
-    gbz_file: Annotated[
-        str, typer.Option("--gbz", help="Path to .gbz file of the graph")
+    graph: Annotated[
+        Path,
+        typer.Argument(
+            help="Path to the .gfa or .gbz file of a pangenome graph",
+            exists=True,
+            readable=True,
+        )
     ] = "",
     region: Annotated[
         str, typer.Option("--region", help="Region to compute complexity over")
