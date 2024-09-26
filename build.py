@@ -16,7 +16,10 @@ def build_cython_extensions():
     from setuptools import Extension  # noqa: I001
     from setuptools.dist import Distribution  # noqa: I001
     import Cython.Compiler.Options  # pyright: ignore [reportMissingImports]
-    from Cython.Build import build_ext, cythonize  # pyright: ignore [reportMissingImports]
+    from Cython.Build import (
+        build_ext,
+        cythonize,
+    )  # pyright: ignore [reportMissingImports]
 
     Cython.Compiler.Options.annotate = True
 
@@ -60,7 +63,9 @@ def build_cython_extensions():
         include_dirs.update(extension.include_dirs)
     include_dirs = list(include_dirs)
 
-    ext_modules = cythonize(extensions, include_path=include_dirs, language_level=3, annotate=True)
+    ext_modules = cythonize(
+        extensions, include_path=include_dirs, language_level=3, annotate=True
+    )
     dist = Distribution({"ext_modules": ext_modules})
     cmd = build_ext(dist)
     cmd.ensure_finalized()
