@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from pathlib import Path
 import typer
 from typing_extensions import Annotated
 from .complexity import AVAILABLE_METRICS
@@ -33,7 +34,7 @@ def complexity(
             "--metrics",
             help="Comma-separated list of which "
             "complexity metrics to compute. "
-            "Options: " + ",".join(AVAILALBE_METRICS),
+            "Options: " + ",".join(AVAILABLE_METRICS),
         ),
     ] = "sequniq-normwalk",
     reference: Annotated[
