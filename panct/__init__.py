@@ -4,8 +4,3 @@ try:
     __version__ = version(__name__)
 except PackageNotFoundError:
     __version__ = "unknown"
-
-__all__ = [
-   "Foo",
-]
-from pythontemplate._c_extension import Foo
