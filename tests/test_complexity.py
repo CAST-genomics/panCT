@@ -40,7 +40,8 @@ def test_complexity_main(tmpdir):
     graph_file = Path(os.path.join(DATADIR, "test.gfa"))
     output_file = str(tmpdir / "test.tab")
     assert (
-        main(graph_file,
+        main(
+            graph_file,
             output_file,
             region,
             region_file,
@@ -65,10 +66,7 @@ def test_complexity_main(tmpdir):
 
     # Invalid metric
     assert (
-        main(
-            graph_file, output_file, region, region_file, "xxx", reference, log
-        )
-        == 1
+        main(graph_file, output_file, region, region_file, "xxx", reference, log) == 1
     )
 
 

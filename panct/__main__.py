@@ -17,7 +17,7 @@ def complexity(
             help="Path to the .gfa or .gbz file of a pangenome graph",
             exists=True,
             readable=True,
-        )
+        ),
     ] = "",
     region: Annotated[
         str, typer.Option("--region", help="Region to compute complexity over")

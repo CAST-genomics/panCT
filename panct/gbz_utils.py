@@ -105,7 +105,7 @@ def check_gbzfile(gbz_file: Path, log: logging.Logger):
     if not gbz_file.exists():
         log.critical(f"{gbz_file} does not exist\n")
         return False
-    if not os.path.exists(str(gbz_file)+".db"):
+    if not os.path.exists(str(gbz_file) + ".db"):
         log.info(f"{gbz_file}.db does not exist. Attempting to create")
         if not index_gbz(gbz_file):
             log.critical("Failed to create GBZ index")
