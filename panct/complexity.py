@@ -8,6 +8,7 @@ import os
 import sys
 import time
 import subprocess
+from pathlib import Path
 
 from . import utils as utils
 from . import gbz_utils as gbz
@@ -17,8 +18,7 @@ AVAILABLE_METRICS = ["sequniq-normwalk", "sequniq-normnode"]
 
 
 def main(
-    gfa_file: str,
-    gbz_file: str,
+    graph_file: Path,
     output_file: str,
     region: str,
     region_file: str,
@@ -38,10 +38,8 @@ def main(
 
     Parameters
     ----------
-    gfa_file : str
-        Path to GFA file
-    gbz_file : str
-        Path to GBZ file
+    graph_file : Path
+        Path to GFA or GBZ file
     output_file : str
         Path to output file
     region : str
@@ -63,11 +61,17 @@ def main(
     start_time = time.time()
 
     #### Check files and indices #####
-    if gfa_file != "" and gbz_file != "":
-        log.critical("Cannot specify both a GBZ and GFA file")
+    if graph_file == "":
+        log.critical("Must specify a graph file")
         return 1
-    if gfa_file == "" and gbz_file == "":
-        log.critical("Must specify either GBZ or GFA file")
+    gfa_file = ""
+    gbz_file = ""
+    if graph_file.suffix == ".gfa":
+        gfa_file = graph_file
+    elif graph_file.suffix == ".gbz":
+        gbz_file = graph_file
+    else:
+        log.critical("Invalid graph type. Must be .gbz or .gfa")
         return 1
     if gbz_file != "":
         if not gbz.check_gbzbase_installed(log):
@@ -78,7 +82,7 @@ def main(
     #### Check requested metrics #####
     metrics_list = metrics.split(",")
     for m in metrics_list:
-        if m not in AVAILALBE_METRICS:
+        if m not in AVAILABLE_METRICS:
             log.critical(f"Encountered invalid metric {m}")
             return 1
 

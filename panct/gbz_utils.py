@@ -7,17 +7,18 @@ import os
 from shutil import which
 import subprocess
 import tempfile
+from pathlib import Path
 from . import graph_utils as gutils
 from .utils import Region
 
 
-def extract_region_from_gbz(gbz_file: str, region: Region, reference: str) -> str:
+def extract_region_from_gbz(gbz_file: Path, region: Region, reference: str) -> str:
     """
     Extract GFA for a region from an indexed GBZ file
 
     Parameters
     ----------
-    gbz_file : str
+    gbz_file : Path
         Path to GBZ file. Must be indexed
     region : Region
         Region to extract
@@ -38,7 +39,7 @@ def extract_region_from_gbz(gbz_file: str, region: Region, reference: str) -> st
         region.chrom,
         "--interval",
         str(region.start) + ".." + str(region.end),
-        gbz_file + ".db",
+        str(gbz_file) + ".db",
     ]
     proc = subprocess.run(cmd, stdout=tmpfile)
     if proc.returncode != 0:
@@ -66,13 +67,13 @@ def check_gbzbase_installed(log: logging.Logger):
     return True
 
 
-def index_gbz(gbz_file: str):
+def index_gbz(gbz_file: Path):
     """
     Index the GBZ file with gbz2db
 
     Parameters
     ----------
-    gbz_file : str
+    gbz_file : Path
         Path to the GBZ file
 
     Returns
@@ -85,14 +86,14 @@ def index_gbz(gbz_file: str):
     return proc.returncode == 0
 
 
-def check_gbzfile(gbz_file: str, log: logging.Logger):
+def check_gbzfile(gbz_file: Path, log: logging.Logger):
     """
     Check if the GBZ file exists and is
     indexed by GBZ-Base
 
     Parameters
     ----------
-    gbz_file : str
+    gbz_file : Path
         Path to the GBZ file
     log : logging.Logger
 
@@ -101,10 +102,10 @@ def check_gbzfile(gbz_file: str, log: logging.Logger):
     passed : bool
         True if GBZ file and GBZ-base database exist
     """
-    if not os.path.exists(gbz_file):
+    if not gbz_file.exists():
         log.critical(f"{gbz_file} does not exist\n")
         return False
-    if not os.path.exists(gbz_file + ".db"):
+    if not os.path.exists(str(gbz_file)+".db"):
         log.info(f"{gbz_file}.db does not exist. Attempting to create")
         if not index_gbz(gbz_file):
             log.critical("Failed to create GBZ index")
@@ -113,14 +114,14 @@ def check_gbzfile(gbz_file: str, log: logging.Logger):
 
 
 def load_node_table_from_gbz(
-    gbz_file: str, region: Region, reference: str
+    gbz_file: Path, region: Region, reference: str
 ) -> gutils.NodeTable:
     """
     Load a NodeTable for a certain region from a GBZ file
 
     Parameters
     ----------
-    gbz_file : str
+    gbz_file : Path
         Path to GBZ file
     region : Region
         Region to load

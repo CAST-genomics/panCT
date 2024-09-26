@@ -14,8 +14,7 @@ from panct.logging import getLogger
 
 def test_complexity_main(tmpdir):
     # Set up defaults
-    gfa_file = ""
-    gbz_file = ""
+    graph_file = ""
     output_file = ""
     region = ""
     region_file = ""
@@ -23,26 +22,10 @@ def test_complexity_main(tmpdir):
     reference = ""
     log = getLogger(name="complexity", level="INFO")
 
-    # Error if no GFA or GBZ or both
+    graph_file = Path("dummy")
     assert (
         main(
-            gfa_file,
-            gbz_file,
-            output_file,
-            region,
-            region_file,
-            metrics,
-            reference,
-            log,
-        )
-        == 1
-    )
-    gfa_file = "dummy"
-    gbz_file = "dummy"
-    assert (
-        main(
-            gfa_file,
-            gbz_file,
+            graph_file,
             output_file,
             region,
             region_file,
@@ -54,13 +37,10 @@ def test_complexity_main(tmpdir):
     )
 
     # Process GFA file
-    gbz_file = ""
-    gfa_file = os.path.join(DATADIR, "test.gfa")
+    graph_file = Path(os.path.join(DATADIR, "test.gfa"))
     output_file = str(tmpdir / "test.tab")
     assert (
-        main(
-            gfa_file,
-            gbz_file,
+        main(graph_file,
             output_file,
             region,
             region_file,
@@ -72,8 +52,7 @@ def test_complexity_main(tmpdir):
     )
     assert (
         main(
-            gfa_file,
-            gbz_file,
+            graph_file,
             output_file,
             "chr1:1-2",
             region_file,
@@ -87,7 +66,7 @@ def test_complexity_main(tmpdir):
     # Invalid metric
     assert (
         main(
-            gfa_file, gbz_file, output_file, region, region_file, "xxx", reference, log
+            graph_file, output_file, region, region_file, "xxx", reference, log
         )
         == 1
     )

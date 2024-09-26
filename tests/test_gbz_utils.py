@@ -11,10 +11,10 @@ def test_check_gbzfile():
     log = getLogger(name="complexity", level="INFO")
 
     # Non-existing file
-    assert not check_gbzfile("/path/to/bad/file", log)
+    assert not check_gbzfile(Path("/path/to/bad/file"), log)
 
     # Check existing file
-    assert check_gbzfile(os.path.join(DATADIR, "test.gbz"), log)
+    assert check_gbzfile(Path(os.path.join(DATADIR, "test.gbz")), log)
 
     # Check existing file but not indexed
     # TODO - add rest of checks once add gbz-base to
