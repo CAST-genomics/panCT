@@ -47,4 +47,5 @@ MANIFEST
 
 # Cython
 panct/*.c
+panct/*.cpp
 panct/*.html
