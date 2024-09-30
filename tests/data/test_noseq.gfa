@@ -1,0 +1,8 @@
+H	VN:Z:1.1	RS:Z:GRCh38
+S	node1	*	LN:i:20
+S	node2	*	LN:i:5
+L	node1	+	node2	+	0M
+W	GRCh38	0	chrTest	0	0	>node1>node2
+W	samp1	0	chrTest	0	0	>node1>node2
+W	samp1	1	chrTest	0	0	>node1<node2
+W	samp2	1	chrTest	0	0	>node1

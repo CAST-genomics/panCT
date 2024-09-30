@@ -1,123 +1,213 @@
-# Taken from grant proposal section C.2.1 in Research Strategy
-# We will define sequence uniqueness as U = ∑ s in S (|s|*p_s*(1 − p_s))/L
-# S is the set of nodes in a region,
-# |s| is the length in bp of node s,
-# p_s is the percent of sequences that go through node s, and
-# L is the average length in bp of all paths traversing the subgraph of interest.
+"""
+Compute complexity scores for regions
+of a pangenome graph
+"""
 
-# This metric is meant to capture the relative amount of sequence in a region that is shared vs. polymorphic amongst haplotypes in a region.
-
+import logging
+import os
 import sys
 import time
 import subprocess
+from pathlib import Path
+
+from . import utils as utils
+from . import gbz_utils as gbz
+from . import graph_utils as gutils
+
+AVAILABLE_METRICS = ["sequniq-normwalk", "sequniq-normnode"]
 
 
-def main():
-
-    # total arguments
-    if len(sys.argv) != 3:
-        print("Usage: python calculate_complexity.py input.gfa node_map.tsv.gz")
-        return
-
-    print(f"Computing complexity of {sys.argv[1]}\t{sys.argv[2]}")
-
-    gfa_file = sys.argv[1]
-    node_map = str(sys.argv[2])
-
-    complexity = complexity_score(gfa_file, node_map)
-
-    print(f"Complexity\t{complexity}\n")
-
-
-def complexity_score(gfa_file: str, node_map: str):
+def main(
+    graph_file: Path,
+    output_file: str,
+    region: str,
+    region_file: str,
+    metrics: str,
+    reference: str,
+    log=logging.Logger,
+):
     """
-    Compute a complexity score for a given GFA file
+    Compute complexity scores for regions
+    of a pangenome graph
+
+    If a GFA file is given, compute complexity
+    on the entire file.
+
+    If a GBZ file is given, must specify a region
+    (or file with list of regions)
 
     Parameters
     ----------
-    gfa_file : str
-        The path to the GFA file
-    node_map : str
-        The path to the node map file
+    graph_file : Path
+        Path to GFA or GBZ file
+    output_file : str
+        Path to output file
+    region : str
+        chrom:start-end of region to process
+    region_file : str
+        Path to BED file of regions to process
+    metrics : str
+        Comma-separated list of metrics to compute
+    reference : str
+        Sample ID of reference
+    log : logging.Logger
+        logger object
 
     Returns
     -------
-    float
-        The complexity score of the GFA file
+    retcode : int
+        Return code of the program
     """
     start_time = time.time()
 
-    gfa = open(gfa_file, "r")
+    #### Check files and indices #####
+    if graph_file == "":
+        log.critical("Must specify a graph file")
+        return 1
+    gfa_file = ""
+    gbz_file = ""
+    if graph_file.suffix == ".gfa":
+        gfa_file = graph_file
+    elif graph_file.suffix == ".gbz":
+        gbz_file = graph_file
+    else:
+        log.critical("Invalid graph type. Must be .gbz or .gfa")
+        return 1
+    if gbz_file != "":
+        if not gbz.check_gbzbase_installed(log):
+            return 1
+        if not gbz.check_gbzfile(gbz_file, log):
+            return 1
 
-    complexity = 0
-    total_length = 0
-    number_of_nodes = 0
+    #### Check requested metrics #####
+    metrics_list = metrics.split(",")
+    for m in metrics_list:
+        if m not in AVAILABLE_METRICS:
+            log.critical(f"Encountered invalid metric {m}")
+            return 1
 
-    # TODO should this be over the whole gfa or just in the subsetted region?
-    # 90 is toatl number of haplotypes in minigraph cactus
-    total_haplotypes = 90
+    ##### Set up output file #####
+    outf = open(output_file, "w")
+    header = []
+    if gbz_file != "":
+        header = ["chrom", "start", "end"]
+    header.extend(["numnodes", "total_length", "numwalks"] + metrics_list)
+    outf.write("\t".join(header) + "\n")
 
-    for line in gfa.readlines():
-        if line.startswith("S"):
-            # Get the sequence length and node id
-            vars = line.split(sep="\t")
-            node = vars[1]
-            length = False
-            for var in vars[3:]:
-                if var.startswith("LN"):
-                    length = var
-                    break
+    ##### If GFA, just process the whole graph #####
+    if gfa_file != "":
+        if region != "" or region_file != "":
+            log.warning("Regions are ignored when processing GFA")
+        exclude = []
+        if reference != "":
+            exclude = [reference]
+        node_table = gutils.NodeTable(gfa_file, exclude)
+        metric_results = []
+        for m in metrics_list:
+            metric_results.append(compute_complexity(node_table, m))
+        items = [
+            len(node_table.nodes.keys()),
+            node_table.get_total_node_length(),
+            node_table.numwalks,
+        ] + metric_results
+        outf.write("\t".join([str(item) for item in items]) + "\n")
+        outf.flush()
+        end_time = time.time()
+        total_time = end_time - start_time
+        sys.stderr.write(f"Total time: \t{total_time}\n")
+        outf.close()
+        return 0
 
-            if not length:
-                print(f"Error! Node {node} has no length")
-                return
+    #### If GBZ: Set up list of regions to process #####
+    regions = []
+    if region != "":
+        regions.append(utils.parse_region_string(region))
+    if region_file != "":
+        if not os.path.exists(region_file):
+            log.critical(f"Could not find {region_file}")
+            return 1
+        regions.extend(utils.parse_regions_file(region_file))
+    if len(regions) == 0:
+        log.critical("Did not detect any regions")
+        return 1
 
-            length_int = int(length.split(sep=":")[2])
+    ##### Process each region #####
+    for region in regions:
+        log.info(
+            "Processing region {chrom}:{start}-{end}".format(
+                chrom=region.chrom, start=region.start, end=region.end
+            )
+        )
+        # Load node table for the region
+        node_table = gbz.load_node_table_from_gbz(gbz_file, region, reference)
 
-            # Compute Average Segment Length
-            total_length += length_int
-            number_of_nodes += 1
+        # Compute each requested complexity metric
+        metric_results = []
+        for m in metrics_list:
+            metric_results.append(compute_complexity(node_table, m))
 
-            # Calculate p_s
-            p_s = get_p_s(node, node_map, total_haplotypes)
+        # Output
+        items = (
+            [region.chrom, region.start, region.end]
+            + [
+                len(node_table.nodes.keys()),
+                node_table.get_total_node_length(),
+                node_table.numwalks,
+            ]
+            + metric_results
+        )
+        outf.write("\t".join([str(item) for item in items]) + "\n")
+        outf.flush()
 
-            # Add complexity
-            addition = length_int * p_s * (1 - p_s)
-
-            # print("addition:", addition)
-            complexity += addition
-
-    average_length = total_length / number_of_nodes
-    complexity = complexity / (average_length)
-
+    ##### Cleanup #####
     end_time = time.time()
-    time_per_node = (end_time - start_time) / number_of_nodes
-    print(f"Time per node\t{time_per_node}")
+    time_per_region = (end_time - start_time) / len(regions)
+    sys.stderr.write(f"Time per region\t{time_per_region}\n")
+    outf.close()
+    return 0
 
-    return complexity
 
-
-def get_p_s(target_node: str, node_map: str, total_haplotypes: int) -> float:
+def compute_complexity(node_table: gutils.NodeTable, metric: str) -> float:
     """
-    Calculate the percent of haplotypes that travel through the given node
+    Compute complexity for a node table. Options:
+
+    sequniq-normwalk: sum_n  len(n)*p_n*(1-p_n)/L
+       where L is the average walk length
+
+    sequniq-normnode: sum_n len(n)*p_n*(1-p_n)/L
+       where L is the average node length
 
     Parameters
     ----------
-    target_node : str
-        The node to calculate the percent of haplotypes that travel through
-    node_map : str
-        The path to the node map file
-    total_haplotypes : int
-        The total number of haplotypes in the dataset
+    node_table : graph_utils.NodeTable
+       Stores info on lengths/walks through each node
+    metric : str
+       Which metric to compute. see description above
 
     Returns
     -------
-    float
-        The percent of haplotypes that travel through the given node
+    complexity : float
+       Complexity score
+
+    Raises
+    ------
+    ValueError
+       If invalid metric specified
     """
-    command = ["tabix", node_map, f":{target_node}-{target_node}"]
-    tabix_output = (
-        subprocess.run(command, stdout=subprocess.PIPE).stdout.decode("utf-8").strip()
-    )
-    haplotypes = tabix_output.split("\t")[2:]  # list of all haplotypes for node
-    return len(haplotypes) / total_haplotypes
+    if node_table.numwalks == 0:
+        return None
+    complexity = 0
+    # Add up value for each node
+    for n in node_table.nodes.keys():
+        if metric == "sequniq-normwalk" or metric == "sequniq-normnode":
+            length = node_table.nodes[n].length
+            p = len(node_table.nodes[n].samples) / node_table.numwalks
+            complexity += length * p * (1 - p)
+    # Normalize
+    if metric == "sequniq-normwalk":
+        complexity = complexity / node_table.get_mean_walk_length()
+    elif metric == "sequniq-normnode":
+        complexity = complexity / node_table.get_mean_node_length()
+    else:
+        raise ValueError(f"Invalid metric {metric}")
+    return complexity
