@@ -32,6 +32,14 @@ def docs(session: Session) -> None:
     if build_dir.exists():
         shutil.rmtree(build_dir)
 
+    session.install(".")
+    session.install(
+        "sphinx",
+        "sphinx-autodoc-typehints",
+        "sphinx-rtd-theme",
+        "numpydoc",
+        "sphinx-click",
+    )
     session.run("sphinx-build", *args)
 
 
