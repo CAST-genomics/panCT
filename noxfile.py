@@ -11,7 +11,7 @@ from nox_poetry import session
 
 
 package = "panct"
-python_versions = ["3.9", "3.10", "3.11", "3.12"]
+python_versions = ["3.9", "3.10", "3.11", "3.12", "3.13"]
 locked_python_version = "3.9"  # keep in sync with dev-env.yml
 nox.needs_version = ">= 2022.11.21"
 nox.options.sessions = (
@@ -47,7 +47,7 @@ def install_handle_python_numpy(session):
     handle incompatibilities with python and numpy versions
     see https://github.com/cjolowicz/nox-poetry/issues/1116
     """
-    if session._session.python in ["3.11", "3.12"]:
+    if session._session.python in ["3.11", "3.12", "3.13"]:
         session._session.install(".")
     else:
         session.install(".")
