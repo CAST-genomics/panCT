@@ -57,7 +57,7 @@ jobs:
       - name: Install dev environment
         env:
           PYTHON_VERSION: ${{ matrix.python }}
-        run:
+        run: |
           sed -i s'/python=3.9/python='"$PYTHON_VERSION"'/' dev-env.yml
           mamba env update -n panct -f dev-env.yml
         if: steps.cache.outputs.cache-hit != 'true'
