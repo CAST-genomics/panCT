@@ -59,8 +59,8 @@ jobs:
           PYTHON_VERSION: ${{ matrix.python }}
         run: |
           # sync the python version in the dev-env.yml file
-          perl -i -pe's/python=3.9/python='"$PYTHON_VERSION"'/g' dev-env.yml
-          mamba env update -n panct -f dev-env.yml
+          sed s'/python=3.9/python='"$PYTHON_VERSION"'/' dev-env.yml > dev-env.new.yml
+          mamba env update -n panct -f dev-env.new.yml
         if: steps.cache.outputs.cache-hit != 'true'
 
       - name: Try to build panct
