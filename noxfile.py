@@ -32,6 +32,14 @@ def docs(session: Session) -> None:
     if build_dir.exists():
         shutil.rmtree(build_dir)
 
+    session.install(".")
+    session.install(
+        "sphinx",
+        "sphinx-autodoc-typehints",
+        "sphinx-rtd-theme",
+        "numpydoc",
+        "sphinx-click",
+    )
     session.run("sphinx-build", *args)
 
 
@@ -63,10 +71,12 @@ if os.getenv("CONDA_EXE"):
     @session(venv_backend=conda_cmd, venv_params=conda_args, python=python_versions)
     def tests(session: Session) -> None:
         """Run the test suite."""
+        # first, delete any existing envs to avoid
+        # https://github.com/cjolowicz/nox-poetry/issues/1188
+        session.run("poetry", "env", "remove", "--all")
         session.conda_install(
             "coverage[toml]",
             "pytest",
-            "numpy>=1.20.0",
             channel="conda-forge",
         )
         install_handle_python_numpy(session)
@@ -83,6 +93,9 @@ else:
     @session(python=python_versions)
     def tests(session: Session) -> None:
         """Run the test suite."""
+        # first, delete any existing envs to avoid
+        # https://github.com/cjolowicz/nox-poetry/issues/1188
+        session.run("poetry", "env", "remove", "--all")
         session.install("coverage[toml]", "pytest")
         install_handle_python_numpy(session)
         try:

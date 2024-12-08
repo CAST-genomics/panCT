@@ -37,6 +37,7 @@ jobs:
           auto-activate-base: false
           miniforge-version: latest
           use-mamba: true
+          conda-remove-defaults: "true"
 
       - name: Get Date
         id: get-date
@@ -48,15 +49,19 @@ jobs:
         with:
           path: ${{ env.CONDA }}/envs
           key:
-            conda-${{ runner.os }}--${{ runner.arch }}--${{ steps.get-date.outputs.today }}-${{ hashFiles('dev-env.yml') }}-${{ env.CACHE_NUMBER }}
+            conda-${{ runner.os }}--${{ runner.arch }}--${{ steps.get-date.outputs.today }}-${{ hashFiles('dev-env.yml') }}-${{ matrix.python }}-${{ env.CACHE_NUMBER }}
         env:
           # Increase this value to reset cache if dev-env.yml has not changed
           CACHE_NUMBER: 0
         id: cache
 
       - name: Install dev environment
-        run:
-          mamba env update -n panct -f dev-env.yml
+        env:
+          PYTHON_VERSION: ${{ matrix.python }}
+        run: |
+          # sync the python version in the dev-env.yml file
+          sed s'/python=3.[[:digit:]]\+ /python='"$PYTHON_VERSION"' /' dev-env.yml > dev-env.new.yml
+          mamba env update -n panct -f dev-env.new.yml
         if: steps.cache.outputs.cache-hit != 'true'
 
       - name: Try to build panct
