@@ -17,51 +17,91 @@ jobs:
         with:
           release-type: python
 
-      - uses: actions/checkout@v3
-        if: ${{ steps.release.outputs.release_created }}
+  build_wheels:
+    name: Build wheels for ${{ matrix.arch }} ${{ matrix.os }} py3.${{ matrix.python }}
+    needs: release
+    runs-on: ${{ matrix.os }}-latest
+    if: ${{ needs.release.outputs.release_created }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python: [9, 10, 11, 12, 13]
+        os: [ubuntu, macos]
+        arch: [x86_64, aarch64, universal2]
+        exclude:
+          - os: macos
+            arch: universal2
+            python: 7
+          - os: ubuntu
+            arch: universal2
+          - os: macos
+            arch: x86_64
+          - os: macos
+            arch: aarch64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU for aarch64 emulation
+        if: runner.os == 'Linux' && matrix.arch == 'aarch64'
+        uses: docker/setup-qemu-action@v3
         with:
-          fetch-depth: 2
+          platforms: all
 
-      - name: Set up Python
-        if: ${{ steps.release.outputs.release_created }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9' # keep synced with dev-env.yml
-
-      - name: Upgrade pip
-        if: ${{ steps.release.outputs.release_created }}
-        run: |
-          pip install --upgrade pip
-          pip --version
-
-      - name: Install Poetry
-        if: ${{ steps.release.outputs.release_created }}
-        run: |
-          pip install 'poetry==1.8.3'  # keep version synced with dev-env.yml
-          poetry --version
-
-      - name: Bump version for developmental release
-        if: ${{ steps.release.outputs.release_created }}
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.19.1
         env:
-          version: ${{ steps.release.outputs.tag_name }}
-        run: |
-          poetry version $version
-
-      - name: Build package
-        if: ${{ steps.release.outputs.release_created }}
-        run: |
-          poetry build --ansi
+          CIBW_SKIP: "*-musllinux_* pp3*-manylinux_aarch64"
+          CIBW_BUILD: ${{ format('*p3{0}-*', matrix.python) }}
+          CIBW_ARCHS: ${{ matrix.arch }}
+          CIBW_TEST_REQUIRES: pytest
+          CIBW_TEST_COMMAND: "pytest {package}/tests"
 
       - uses: actions/upload-artifact@v4
-        if: ${{ steps.release.outputs.release_created }}
         with:
-          name: dist
-          path: dist/
+          name: wheels-${{ matrix.os }}-${{ matrix.arch }}-3${{ matrix.python }}
+          path: ./wheelhouse/*.whl
 
-  upload_pypi:
+  merge_wheels:
+    runs-on: ubuntu-latest
+    needs: build_wheels
+    steps:
+      - name: Merge wheel artifacts into a single artifact
+        uses: actions/upload-artifact/merge@v4
+        with:
+          name: wheels
+          pattern: wheels-*
+          delete-merged: true
+
+  build_sdist:
     needs: release
     runs-on: ubuntu-latest
     if: ${{ needs.release.outputs.release_created }}
+    env:
+      job_python_version: "3.9" # keep synced with dev-env.yml
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.job_python_version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.job_python_version }}
+
+      - name: Create source distribution
+        run: |
+          pip install build
+          python -m build --sdist .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/panct-*.tar.gz
+
+  upload_pypi:
+    needs: [build_wheels, build_sdist]
+    runs-on: ubuntu-latest
     environment: release
     permissions:
       # IMPORTANT: this permission is mandatory for trusted publishing
