@@ -17,15 +17,15 @@ Usage
 .. code-block:: bash
 
   panct complexity \
-    --gfa GFAFILE \
-    --out OUTFILE
-    --verbosity [CRITICAL|ERROR|WARNING|INFO|DEBUG|NOTSET]
+    --out OUTFILE \
+    --verbosity [CRITICAL|ERROR|WARNING|INFO|DEBUG|NOTSET] \
+    GFAFILE
 
 Examples
 ~~~~~~~~
 .. code-block:: bash
 
-  panct complexity --gfa tests/data/test.gfa --out test.tab
+  panct complexity --out test.tab tests/data/test.gfa
 
 All files used in these examples are described :doc:`here </project_info/example_files>`.
 
@@ -37,14 +37,16 @@ Below are additional examples based on the HPRC .gbz format graph (not included 
 .. code-block:: bash
 
   # Run on a single region
-  panct complexity --gbz hprc-v1.1-mc-grch38.gbz \
+  panct complexity \
     --region chr11:119077050-119178859 --out test.tab \
-    --metrics sequniq-normwalk,sequniq-normnode
+    --metrics sequniq-normwalk,sequniq-normnode \
+    hprc-v1.1-mc-grch38.gbz
 
   # Run on a file with a list of regions
-  panct complexity --gbz hprc-v1.1-mc-grch38.gbz \
+  panct complexity \
     --region regions.bed --out test.tab \
-    --metrics sequniq-normwalk,sequniq-normnode
+    --metrics sequniq-normwalk,sequniq-normnode \
+    hprc-v1.1-mc-grch38.gbz
 
 Detailed Usage
 ~~~~~~~~~~~~~~
