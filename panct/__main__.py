@@ -67,8 +67,8 @@ def walks(
             exists=True,
             readable=True,
         ),
-    ] = "",
-    output_file: Annotated[str, typer.Option("--out", help="Name of output file")],
+    ],
+    output_file: Annotated[str, typer.Option("-o", "--out", help="Name of output file")] = None,
     verbosity: str = "INFO",
 ):
     """
