@@ -59,8 +59,29 @@ def complexity(
 # Adding dummy command for now
 # Removing this breaks Typer commands?
 @app.command()
-def map():
-    print("Not implemented")
+def walks(
+    graph: Annotated[
+        Path,
+        typer.Argument(
+            help="Path to the .gfa file of a pangenome graph",
+            exists=True,
+            readable=True,
+        ),
+    ] = "",
+    output_file: Annotated[str, typer.Option("--out", help="Name of output file")],
+    verbosity: str = "INFO",
+):
+    """
+    Extract walks to a file
+    """
+    from .walks import extract_walks
+    from .logging import getLogger
+
+    log = getLogger(name="walks", level=verbosity)
+
+    retcode = extract_walks(graph, output, log)
+    if retcode.returncode != 0:
+        typer.Exit(code=retcode.returncode)
 
 
 typer_click_object = typer.main.get_command(app)
