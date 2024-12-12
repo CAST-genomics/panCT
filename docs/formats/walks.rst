@@ -21,7 +21,7 @@ You can find an example of a ``.walk`` file without any extra fields in `tests/d
 
 Compressing and indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~
-If it isn't already, we encourage you to bgzip compress and index your ``.walk`` file whenever possible. This will reduce both disk usage and the time required to parse the file, but it is entirely optional. You can either use the :doc:`index command </commands/index>` or the ``bgzip`` and ``tabix`` commands.
+If it isn't already, we encourage you to bgzip compress and index your ``.walk`` file whenever possible. This will reduce both disk usage and the time required to parse the file, but it is entirely optional. You can use the ``bgzip`` and ``tabix`` commands.
 
 .. code-block:: bash
 
