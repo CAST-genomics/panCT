@@ -15,7 +15,8 @@ def extract_walks(
     log: logging.Logger = None,
 ):
     """
-    Creates a VCF composed of haplotypes
+    Creates a .walks file mapping nodes in the graph to sample IDs representing
+    haplotypes
 
     Parameters
     ----------
@@ -31,15 +32,18 @@ def extract_walks(
 
     if output is None:
         output = graph.with_suffix(".walks")
-    
+
     if output.suffix == ".gz":
         output = output.with_suffix("")
-    
+
     # what is the path to the shell script build_node_sample_map.sh ?
     script_path = Path(__file__).parent / "build_node_sample_map.sh"
 
     result = subprocess.run(
-        [script_path, graph, output], capture_output=True, text=True, check=True,
+        [script_path, graph, output],
+        capture_output=True,
+        text=True,
+        check=True,
     )
 
     # TODO: bgzip and tabix index the resulting file

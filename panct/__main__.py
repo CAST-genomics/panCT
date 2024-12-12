@@ -39,7 +39,9 @@ def complexity(
     reference: Annotated[
         str, typer.Option("--reference", help="Which sequence to use as the reference")
     ] = "GRCh38",
-    output_file: Annotated[Path, typer.Option("--out", help="Name of output file")] = Path("-"),
+    output_file: Annotated[
+        Path, typer.Option("--out", help="Name of output file")
+    ] = Path("-"),
     verbosity: str = "INFO",
 ):
     """
