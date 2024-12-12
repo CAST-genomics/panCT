@@ -3,7 +3,6 @@ Utilities for panct package
 """
 
 import re
-import sys
 from typing import List
 
 

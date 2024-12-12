@@ -4,7 +4,6 @@ Utilities for dealing with node tables
 
 import numpy as np
 from typing import List, Optional
-from . import gbz_utils as gbz
 
 
 class Node:
