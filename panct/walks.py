@@ -15,7 +15,7 @@ def extract_walks(
     log: logging.Logger = None,
 ):
     """
-    Creates a .walks file mapping nodes in the graph to sample IDs representing
+    Creates a .walk file mapping nodes in the graph to sample IDs representing
     haplotypes
 
     Parameters
@@ -31,7 +31,7 @@ def extract_walks(
         log = getLogger(name="walks", level="ERROR")
 
     if output is None:
-        output = graph.with_suffix(".walks")
+        output = graph.with_suffix(".walk")
 
     if output.suffix == ".gz":
         output = output.with_suffix("")
