@@ -50,6 +50,7 @@ We do not yet have a manuscript for our toolkit.
    :maxdepth: 1
 
    formats/gfa.rst
+   formats/walks.rst
 
 .. toctree::
    :caption: Commands
@@ -58,6 +59,7 @@ We do not yet have a manuscript for our toolkit.
    :maxdepth: 1
 
    commands/complexity.rst
+   commands/walks.rst
 
 .. toctree::
    :caption: API
