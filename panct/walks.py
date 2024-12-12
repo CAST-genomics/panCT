@@ -1,7 +1,13 @@
 """
 Extract walks (W lines) from a GFA file into an indexed tab-separated format
 """
+
+import logging
 import subprocess
+from pathlib import Path
+
+from .logging import getLogger
+
 
 def extract_walks(
     graph: Path,
@@ -26,6 +32,8 @@ def extract_walks(
     if output is None:
         output = graph.with_suffix(".walks")
 
-    result = subprocess.run(['./build_node_sample_map.sh', graph, output], capture_output=True, text=True)
+    result = subprocess.run(
+        ["./build_node_sample_map.sh", graph, output], capture_output=True, text=True
+    )
 
     return result

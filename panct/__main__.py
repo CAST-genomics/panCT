@@ -10,7 +10,6 @@ app = typer.Typer()
 
 @app.command()
 def complexity(
-    output_file: Annotated[str, typer.Option("--out", help="Name of output file")],
     graph: Annotated[
         Path,
         typer.Argument(
@@ -18,7 +17,7 @@ def complexity(
             exists=True,
             readable=True,
         ),
-    ] = "",
+    ],
     region: Annotated[
         str, typer.Option("--region", help="Region to compute complexity over")
     ] = "",
@@ -40,6 +39,7 @@ def complexity(
     reference: Annotated[
         str, typer.Option("--reference", help="Which sequence to use as the reference")
     ] = "GRCh38",
+    output_file: Annotated[Path, typer.Option("--out", help="Name of output file")] = Path("-"),
     verbosity: str = "INFO",
 ):
     """
@@ -50,7 +50,7 @@ def complexity(
 
     log = getLogger(name="complexity", level=verbosity)
     retcode = complexity_main(
-        graph, output_file, region, region_file, metrics, reference, log
+        graph, str(output_file), region, region_file, metrics, reference, log
     )
     if retcode != 0:
         typer.Exit(code=retcode)
@@ -68,7 +68,9 @@ def walks(
             readable=True,
         ),
     ],
-    output_file: Annotated[str, typer.Option("-o", "--out", help="Name of output file")] = None,
+    output_file: Annotated[
+        Path, typer.Option("-o", "--out", help="Name of output file")
+    ] = None,
     verbosity: str = "INFO",
 ):
     """
@@ -79,7 +81,7 @@ def walks(
 
     log = getLogger(name="walks", level=verbosity)
 
-    retcode = extract_walks(graph, output, log)
+    retcode = extract_walks(graph, output_file, log)
     if retcode.returncode != 0:
         typer.Exit(code=retcode.returncode)
 

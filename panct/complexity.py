@@ -3,14 +3,14 @@ Compute complexity scores for regions
 of a pangenome graph
 """
 
-import logging
 import os
 import sys
 import time
-import subprocess
+import logging
 from pathlib import Path
 
 from . import utils as utils
+from .logging import getLogger
 from . import gbz_utils as gbz
 from . import graph_utils as gutils
 
@@ -24,7 +24,7 @@ def main(
     region_file: str,
     metrics: str,
     reference: str,
-    log=logging.Logger,
+    log: logging.Logger = None,
 ):
     """
     Compute complexity scores for regions
@@ -58,6 +58,8 @@ def main(
     retcode : int
         Return code of the program
     """
+    if log is None:
+        log = getLogger(name="complexity", level="ERROR")
     start_time = time.time()
 
     #### Check files and indices #####
@@ -101,7 +103,7 @@ def main(
         exclude = []
         if reference != "":
             exclude = [reference]
-        node_table = gutils.NodeTable(gfa_file, exclude)
+        node_table = gutils.NodeTable(str(gfa_file), exclude)
         metric_results = []
         for m in metrics_list:
             metric_results.append(compute_complexity(node_table, m))
