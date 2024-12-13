@@ -1,6 +1,5 @@
 .. _formats-walks:
 
-
 Walks
 =====
 
@@ -27,3 +26,4 @@ If it isn't already, we encourage you to bgzip compress and index your ``.walk``
 
   bgzip file.walk
   tabix -s 1 -b 2 -e 3 file.walk.gz
+
