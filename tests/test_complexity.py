@@ -37,7 +37,7 @@ def test_complexity_main(tmpdir):
     )
 
     # Process GFA file
-    graph_file = Path(os.path.join(DATADIR, "test.gfa"))
+    graph_file = DATADIR / "basic.gfa"
     output_file = str(tmpdir / "test.tab")
     assert (
         main(
