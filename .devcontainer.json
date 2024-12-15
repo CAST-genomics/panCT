@@ -15,7 +15,7 @@
 	// "forwardPorts": [],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "mamba env create -n panct -f dev-env.yml && conda run -n panct poetry config virtualenvs.in-project true && conda run -n panct poetry install",
+	"postCreateCommand": "mamba env create -y -n panct -f dev-env.yml && conda run -n panct poetry config virtualenvs.in-project true && conda run -n panct poetry install",
 
 	// Configure tool-specific properties.
 	"customizations": {

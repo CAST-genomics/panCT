@@ -14,7 +14,7 @@ def test_check_gbzfile():
     assert not check_gbzfile(Path("/path/to/bad/file"), log)
 
     # Check existing file
-    assert check_gbzfile(DATADIR / "basic.gbz"), log)
+    assert check_gbzfile(DATADIR / "basic.gbz", log)
 
     # Check existing file but not indexed
     # TODO - add rest of checks once add gbz-base to
