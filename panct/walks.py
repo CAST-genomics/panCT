@@ -6,6 +6,8 @@ import logging
 import subprocess
 from pathlib import Path
 
+from pysam import tabix_compress, tabix_index
+
 from .logging import getLogger
 
 
@@ -31,9 +33,11 @@ def extract_walks(
         log = getLogger(name="walks", level="ERROR")
 
     if output is None:
-        output = graph.with_suffix(".walk")
+        output = graph.with_suffix(".walk.gz")
 
+    also_index = False
     if output.suffix == ".gz":
+        also_index = True
         output = output.with_suffix("")
 
     # what is the path to the shell script build_node_sample_map.sh ?
@@ -46,6 +50,19 @@ def extract_walks(
         check=True,
     )
 
-    # TODO: bgzip and tabix index the resulting file
+    # bgzip and tabix index the resulting file
+    if also_index:
+        gz_file = output.with_suffix(".walk.gz")
+        tabix_compress(str(output), str(gz_file), force=True)
+        output.unlink()
+        try:
+            tabix_index(str(gz_file), preset="bed", force=True)
+        except OSError as e:
+            # check if the error message matches what we expect if the file is unsorted
+            if str(e).startswith("building of index for "):
+                log.error("Indexing failed. Are your walks properly formatted?")
+            else:
+                # otherwise, re-raise it
+                raise
 
     return result

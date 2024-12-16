@@ -5,7 +5,7 @@ Walks
 
 A ``.walk`` file stores the walks (W lines) of a pangenome graph.
 
-Compared to the way that walks are stored in the GFA format, this format is designed to support faster querying of the walks from their node IDs.
+Unlike walks stored in the GFA format, the walks in the ``.walk`` format are designed to support faster querying from their node IDs.
 
 Overview
 ~~~~~~~~
@@ -30,5 +30,5 @@ If it isn't already, we encourage you to bgzip compress and index your ``.walk``
 .. code-block:: bash
 
   bgzip file.walk
-  tabix -s 1 -b 2 -e 3 file.walk.gz
+  tabix file.walk.gz
 
