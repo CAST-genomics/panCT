@@ -15,7 +15,12 @@ Examples
 ~~~~~~~~
 You can find an example of a ``.walk`` file without any extra fields in `tests/data/basic.walk <https://github.com/cast-genomics/panct/blob/main/tests/data/basic.walk>`_:
 
-.. include:: ../../tests/data/test.walk
+.. include:: ../../tests/data/basic.walk
+   :literal:
+
+And here's the corresponding GFA file:
+
+.. include:: ../../tests/data/basic.gfa
    :literal:
 
 Compressing and indexing
