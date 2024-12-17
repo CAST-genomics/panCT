@@ -62,7 +62,7 @@ def extract_walks(
         if not output_exists:
             output.unlink()
         try:
-            tabix_index(str(gz_file), seq_col=1, start_col=2, end_col=3, force=True)
+            tabix_index(str(gz_file), preset="bed", force=True)
         except OSError as e:
             # check if the error message matches what we expect if the file is unsorted
             if str(e).startswith("building of index for "):
