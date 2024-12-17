@@ -12,6 +12,7 @@ Commands
 ~~~~~~~~
 
 * :doc:`panct complexity </commands/complexity>`: Compute complexity scores for a GFA file
+* :doc:`panct walks </commands/walks>`: Create an efficient cache of the walks in a GFA file
 
 Detailed information about each command can be found in the *Commands* section of our documentation. Examples there utilize a set of example files described :doc:`here </project_info/example_files>`.
 

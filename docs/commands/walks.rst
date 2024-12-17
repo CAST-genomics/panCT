@@ -19,7 +19,7 @@ Usage
 
 Examples
 ~~~~~~~~
-To create a ``.walks.gz`` and ``.walks.gz.tbi`` file adjacent to a GFA, just specify the path to the GFA.
+To create a ``.walk.gz`` and ``.walk.gz.tbi`` file adjacent to a GFA, just specify the path to the GFA.
 
 .. code-block:: bash
 

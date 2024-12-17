@@ -43,6 +43,7 @@ def extract_walks(
     if output.suffix == ".gz":
         also_index = True
         output = output.with_suffix("")
+    output_exists = output.exists()
 
     # what is the path to the shell script build_node_sample_map.sh ?
     script_path = Path(__file__).parent / "build_node_sample_map.sh"
@@ -58,9 +59,10 @@ def extract_walks(
     if also_index:
         gz_file = output.with_suffix(".walk.gz")
         tabix_compress(str(output), str(gz_file), force=True)
-        output.unlink()
+        if not output_exists:
+            output.unlink()
         try:
-            tabix_index(str(gz_file), preset="bed", force=True)
+            tabix_index(str(gz_file), seq_col=1, start_col=2, end_col=3, force=True)
         except OSError as e:
             # check if the error message matches what we expect if the file is unsorted
             if str(e).startswith("building of index for "):
