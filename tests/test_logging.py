@@ -1,11 +1,11 @@
 import logging
 
-import pytest
+from pytest import LogCaptureFixture
 
 from panct.logging import getLogger
 
 
-def test_getLogger(caplog: pytest.LogCaptureFixture):
+def test_getLogger(caplog: LogCaptureFixture):
     logger = getLogger()
     assert isinstance(logger, logging.Logger)
 

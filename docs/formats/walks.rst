@@ -9,7 +9,20 @@ Unlike walks stored in the GFA format, the walks in the ``.walk`` format are des
 
 Overview
 ~~~~~~~~
-# TODO
+A ``.walk`` file is tab-delimited and has four or more columns per line:
+
+.. list-table::
+   :widths: 15 15 25
+   :header-rows: 1
+
+   * - Name
+     - Description
+   * - empty
+     - The first column is always empty
+   * - node ID
+     - The second column contains the ID of the node
+   * - sample IDs
+     - Any other columns will contain the IDs of samples with a haplotype that passed through this node
 
 Examples
 ~~~~~~~~

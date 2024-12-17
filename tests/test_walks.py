@@ -45,7 +45,7 @@ def test_basic_gz(capfd):
     captured = capfd.readouterr()
     assert captured.out == ""
     with gzip.open(out_file, "rb") as f:
-        out_file_content = f.read().decode('utf-8')
+        out_file_content = f.read().decode("utf-8")
     with open(exp_file, "r") as f:
         exp_file_content = f.read()
     # check that the output .walk file is the same as the file in tests/data/

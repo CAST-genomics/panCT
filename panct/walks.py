@@ -25,7 +25,8 @@ def extract_walks(
     graph : Path
         The path to a pangenome graph in GFA file
     output : Path, optional
-        The location to which to write output
+        The location to which to write output. If not specified, we use the path to
+        the graph, but with a .walk.gz file ending, instead.
     log : Logger, optional
         A logging module to which to write messages about progress and any errors
     """
@@ -33,7 +34,10 @@ def extract_walks(
         log = getLogger(name="walks", level="ERROR")
 
     if output is None:
-        output = graph.with_suffix(".walk.gz")
+        if graph.suffix == ".gz":
+            output = graph.with_suffix("").with_suffix(".walk.gz")
+        else:
+            output = graph.with_suffix(".walk.gz")
 
     also_index = False
     if output.suffix == ".gz":
@@ -43,7 +47,7 @@ def extract_walks(
     # what is the path to the shell script build_node_sample_map.sh ?
     script_path = Path(__file__).parent / "build_node_sample_map.sh"
 
-    result = subprocess.run(
+    subprocess.run(
         [script_path, graph, output],
         capture_output=True,
         text=True,
@@ -64,5 +68,3 @@ def extract_walks(
             else:
                 # otherwise, re-raise it
                 raise
-
-    return result

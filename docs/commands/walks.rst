@@ -19,9 +19,17 @@ Usage
 
 Examples
 ~~~~~~~~
+To create a ``.walks.gz`` and ``.walks.gz.tbi`` file adjacent to a GFA, just specify the path to the GFA.
+
 .. code-block:: bash
 
-  panct walks --out test.walks.gz tests/data/test.gfa
+  panct walks tests/data/basic.gfa
+
+You can also specify the output file path manually.
+
+.. code-block:: bash
+
+  panct walks --out basic.walk.gz tests/data/basic.gfa
 
 All files used in these examples are described :doc:`here </project_info/example_files>`.
 
@@ -32,10 +40,9 @@ Below are additional examples based on the HPRC .gfa format graph (not included 
 
 .. code-block:: bash
 
-  # Run on a file
   panct walks hprc-v1.1-mc-grch38.gfa
 
-When an output file is not specified, the output will have the same filename as the input, except with a ``.walks`` extension.
+This may take some time. You can speed it up by allocating more memory and CPUs. The command should scale automatically with the resources that have been allocated to it.
 
 Detailed Usage
 ~~~~~~~~~~~~~~

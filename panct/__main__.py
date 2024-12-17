@@ -83,9 +83,7 @@ def walks(
 
     log = getLogger(name="walks", level=verbosity)
 
-    retcode = extract_walks(graph, output_file, log)
-    if retcode.returncode != 0:
-        typer.Exit(code=retcode.returncode)
+    extract_walks(graph, output_file, log)
 
 
 typer_click_object = typer.main.get_command(app)
