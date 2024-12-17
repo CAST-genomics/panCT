@@ -12,7 +12,7 @@ Overview
 A ``.walk`` file is tab-delimited and has four or more columns per line:
 
 .. list-table::
-   :widths: 15 15 25
+   :widths: 15 25
    :header-rows: 1
 
    * - Name
