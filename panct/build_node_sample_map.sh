@@ -16,5 +16,5 @@ fi } | grep -E '^W' | cut -f 2,7 | sed 's/	//;s/</	/g;s/>/	/g' | awk -F '	' -v O
 current==$1 { line = line OFS $2; next; }
 { print line; current=$1; line=$0; }
 END { print line }' | awk -F '	' -v OFS='	' 'NF {
-  print "" FS $1 FS $0
+  print "" FS $0
 }' > "$2"

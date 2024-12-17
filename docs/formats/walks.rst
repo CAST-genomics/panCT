@@ -18,7 +18,7 @@ A ``.walk`` file is tab-delimited and has four or more columns per line:
    * - Name
      - Description
    * - empty
-     - The first column is always empty
+     - The first column is always empty to satisfy ``tabix``
    * - node ID
      - The second column contains the ID of the node
    * - sample IDs
@@ -43,5 +43,5 @@ If it isn't already, we encourage you to bgzip compress and index your ``.walk``
 .. code-block:: bash
 
   bgzip file.walk
-  tabix file.walk.gz
+  tabix -s 1 -b 2 -e 2 file.walk.gz
 
