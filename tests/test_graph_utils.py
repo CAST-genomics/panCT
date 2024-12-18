@@ -54,7 +54,7 @@ def test_node_table():
     assert nt.get_mean_walk_length() == 95 / 4
     assert nt.numwalks == 4
     nt = NodeTable(
-        gfa_file=os.path.join(DATADIR, "basic_noseq.gfa"), exclude_samples=["GRCh38"]
+        gfa_file=DATADIR / "basic_noseq.gfa", exclude_samples=["GRCh38"]
     )
     assert nt.get_mean_walk_length() == 70 / 3
     assert nt.numwalks == 3
@@ -66,4 +66,4 @@ def test_node_table():
 
     # Load from GFA with no lengths
     with pytest.raises(ValueError):
-        NodeTable(gfa_file=os.path.join(DATADIR, "basic_nolen.gfa"))
+        NodeTable(gfa_file=DATADIR / "basic_nolen.gfa")

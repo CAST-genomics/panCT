@@ -26,7 +26,7 @@ def test_parse_region_string():
 
 def test_parse_regions_file():
     # Valid regions file
-    regions_list = parse_regions_file(os.path.join(DATADIR, "valid_regions.bed"))
+    regions_list = parse_regions_file(DATADIR / "valid_regions.bed")
     assert len(regions_list) == 2
     assert regions_list[0].chrom == "chr1"
     assert regions_list[0].start == 123
@@ -37,8 +37,8 @@ def test_parse_regions_file():
 
     # Malformatted regions files
     with pytest.raises(ValueError):
-        parse_regions_file(os.path.join(DATADIR, "invalid_regions1.bed"))
+        parse_regions_file(DATADIR / "invalid_regions1.bed")
     with pytest.raises(ValueError):
-        parse_regions_file(os.path.join(DATADIR, "invalid_regions2.bed"))
+        parse_regions_file(DATADIR / "invalid_regions2.bed")
     with pytest.raises(ValueError):
-        parse_regions_file(os.path.join(DATADIR, "invalid_regions3.bed"))
+        parse_regions_file(DATADIR / "invalid_regions3.bed")
