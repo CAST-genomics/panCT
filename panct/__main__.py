@@ -37,7 +37,7 @@ def complexity(
         ),
     ] = "sequniq-normwalk",
     reference: Annotated[
-        str, typer.Option("--reference", help="Which sequence to use as the reference")
+        str, typer.Option("--reference", help="The ID of the reference sequence in the GFA file")
     ] = "GRCh38",
     output_file: Annotated[
         Path, typer.Option("--out", help="Name of output file")

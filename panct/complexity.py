@@ -176,7 +176,7 @@ def compute_complexity(node_table: gutils.NodeTable, metric: str) -> float:
     sequniq-normwalk: sum_n  len(n)*p_n*(1-p_n)/L
        where L is the average walk length
 
-    sequniq-normnode: sum_n len(n)*p_n*(1-p_n)/L
+    sequniq-normnode: sum_n  len(n)*p_n*(1-p_n)/L
        where L is the average node length
 
     Parameters
@@ -184,7 +184,7 @@ def compute_complexity(node_table: gutils.NodeTable, metric: str) -> float:
     node_table : graph_utils.NodeTable
        Stores info on lengths/walks through each node
     metric : str
-       Which metric to compute. see description above
+       Which metric to compute. See description above
 
     Returns
     -------
@@ -200,16 +200,15 @@ def compute_complexity(node_table: gutils.NodeTable, metric: str) -> float:
         return None
     complexity = 0
     # Add up value for each node
-    for n in node_table.nodes.keys():
-        if metric == "sequniq-normwalk" or metric == "sequniq-normnode":
+    if metric in ("sequniq-normwalk", "sequniq-normnode"):
+        for n in node_table.nodes.keys():
             length = node_table.nodes[n].length
             p = len(node_table.nodes[n].samples) / node_table.numwalks
             complexity += length * p * (1 - p)
-    # Normalize
-    if metric == "sequniq-normwalk":
-        complexity = complexity / node_table.get_mean_walk_length()
-    elif metric == "sequniq-normnode":
-        complexity = complexity / node_table.get_mean_node_length()
-    else:
-        raise ValueError(f"Invalid metric {metric}")
-    return complexity
+        # Normalize
+        if metric == "sequniq-normwalk":
+            complexity = complexity / node_table.get_mean_walk_length()
+        elif metric == "sequniq-normnode":
+            complexity = complexity / node_table.get_mean_node_length()
+        return complexity
+    raise ValueError(f"Invalid metric {metric}")

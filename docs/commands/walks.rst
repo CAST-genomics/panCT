@@ -13,7 +13,7 @@ Usage
 .. code-block:: bash
 
   panct walks \
-    --out OUTFILE \
+    --out PATH \
     --verbosity [CRITICAL|ERROR|WARNING|INFO|DEBUG|NOTSET] \
     GFAFILE
 

@@ -12,12 +12,33 @@ If a GFA file is provided, the whole graph is processed.
 
 If a GBZ file is provided, you must specify a region or list of regions to process.
 
+Formulas
+~~~~~~~~
+The complexity of a region is computed according to the following.
+
+.. math::
+
+  \sum_n \frac{|n|*p_n*(1-p_n)}L
+
+For a node :math:`n` in the region, :math:`|n|` represents the length (in base pairs) of the sequence. So a node with sequence 'ATGAC' would have :math:`|n|=5`, for example.
+
+The percent of sample haplotypes (aka "walks") that visit node :math:`n` is represented by :math:`p_n`.
+
+However, :math:`L` can be computed in one of two ways. Each of these results in a different way of computing complexity:
+
+1. If ``--metrics sequniq-normwalk`` is specified, :math:`L` is computed as the average length of all walks in the region
+2. If ``--metrics sequniq-normnode`` is specified, :math:`L` instead represents the average length of all nodes in the region
+
 Usage
 ~~~~~
 .. code-block:: bash
 
   panct complexity \
-    --out OUTFILE \
+    --region REGION \
+    --region-file PATH \
+    --metrics sequniq-normwalk,sequniq-normnode \
+    --reference REFERENCE_ID \
+    --out PATH \
     --verbosity [CRITICAL|ERROR|WARNING|INFO|DEBUG|NOTSET] \
     GFAFILE
 
