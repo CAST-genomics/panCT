@@ -2,17 +2,21 @@
 Utilities for dealing with GBZ files
 """
 
-import logging
 import os
-from shutil import which
-import subprocess
+import logging
 import tempfile
+import subprocess
+from shutil import which
 from pathlib import Path
-from . import graph_utils as gutils
+from typing import Optional
+
 from .utils import Region
+from . import graph_utils as gutils
 
 
-def extract_region_from_gbz(gbz_file: Path, region: Region, reference: str) -> str:
+def extract_region_from_gbz(
+    gbz_file: Path, region: Region, reference: str
+) -> Optional[str]:
     """
     Extract GFA for a region from an indexed GBZ file
 

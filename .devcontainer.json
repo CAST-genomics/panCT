@@ -22,7 +22,8 @@
 			"extensions": [
 				"ms-python.python",
 				"ms-vscode.live-server",
-				"ms-python.black-formatter"
+				"ms-python.black-formatter",
+				"GitHub.vscode-github-actions"
 			],
 			"settings": {
 				"python.analysis.typeCheckingMode": "strict",

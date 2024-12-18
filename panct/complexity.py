@@ -8,6 +8,7 @@ import sys
 import time
 import logging
 from pathlib import Path
+from typing import Optional
 
 from . import utils as utils
 from .logging import getLogger
@@ -63,23 +64,18 @@ def main(
     start_time = time.time()
 
     #### Check files and indices #####
-    if graph_file == "":
-        log.critical("Must specify a graph file")
-        return 1
-    gfa_file = ""
-    gbz_file = ""
+    file_type = None
     if graph_file.suffix == ".gfa":
-        gfa_file = graph_file
+        file_type = "gfa"
     elif graph_file.suffix == ".gbz":
-        gbz_file = graph_file
+        file_type = "gbz"
+        if not gbz.check_gbzbase_installed(log):
+            return 1
+        if not gbz.check_gbzfile(graph_file, log):
+            return 1
     else:
         log.critical("Invalid graph type. Must be .gbz or .gfa")
         return 1
-    if gbz_file != "":
-        if not gbz.check_gbzbase_installed(log):
-            return 1
-        if not gbz.check_gbzfile(gbz_file, log):
-            return 1
 
     #### Check requested metrics #####
     metrics_list = metrics.split(",")
@@ -91,19 +87,19 @@ def main(
     ##### Set up output file #####
     outf = open(output_file, "w")
     header = []
-    if gbz_file != "":
+    if file_type == "gbz":
         header = ["chrom", "start", "end"]
     header.extend(["numnodes", "total_length", "numwalks"] + metrics_list)
     outf.write("\t".join(header) + "\n")
 
     ##### If GFA, just process the whole graph #####
-    if gfa_file != "":
+    if file_type == "gfa":
         if region != "" or region_file != "":
             log.warning("Regions are ignored when processing GFA")
         exclude = []
         if reference != "":
             exclude = [reference]
-        node_table = gutils.NodeTable(str(gfa_file), exclude)
+        node_table = gutils.NodeTable(str(graph_file), exclude)
         metric_results = []
         for m in metrics_list:
             metric_results.append(compute_complexity(node_table, m))
@@ -141,7 +137,7 @@ def main(
             )
         )
         # Load node table for the region
-        node_table = gbz.load_node_table_from_gbz(gbz_file, region, reference)
+        node_table = gbz.load_node_table_from_gbz(graph_file, region, reference)
 
         # Compute each requested complexity metric
         metric_results = []
@@ -169,7 +165,7 @@ def main(
     return 0
 
 
-def compute_complexity(node_table: gutils.NodeTable, metric: str) -> float:
+def compute_complexity(node_table: gutils.NodeTable, metric: str) -> Optional[float]:
     """
     Compute complexity for a node table. Options:
 

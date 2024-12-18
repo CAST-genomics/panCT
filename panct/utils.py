@@ -3,7 +3,6 @@ Utilities for panct package
 """
 
 import re
-from typing import List
 
 
 class Region:
@@ -26,7 +25,7 @@ class Region:
         self.end = end
 
 
-def parse_regions_file(region_file: str) -> List[Region]:
+def parse_regions_file(region_file: str) -> list[Region]:
     """
     Extract list of regions from BED file
 
@@ -37,7 +36,7 @@ def parse_regions_file(region_file: str) -> List[Region]:
 
     Returns
     -------
-    regions_list : list of Region
+    regions_list : list[Region]
 
     Raises
     ------

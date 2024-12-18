@@ -53,7 +53,7 @@ class NodeTable:
         Dictionary of nodes, indexed by node ID
     numwalks : int
         Number of walks going through this region
-    walk_lengths : list of int
+    walk_lengths : list[int]
         List of lengths of walks through this region
 
     Methods
@@ -95,7 +95,7 @@ class NodeTable:
         """
         self.nodes[node.nodeid] = node
 
-    def add_walk(self, sampid: str, nodelist: list[Node]):
+    def add_walk(self, sampid: str, nodelist: list[str]):
         """
         Add a walk to the node table
 
@@ -103,21 +103,21 @@ class NodeTable:
         ----------
         sampid : str
             ID of the walk
-        nodelist : list of Node
+        nodelist : list[str]
         """
         self.walk_lengths.append(self.get_walk_length(nodelist))
         for n in nodelist:
             self.nodes[n].add_sample(sampid)
         self.numwalks += 1
 
-    def get_walk_length(self, nodelist: list[Node]) -> int:
+    def get_walk_length(self, nodelist: list[str]) -> int:
         """
         Get the total length of a walk
         through the given list of nodes
 
         Parameters
         ----------
-        nodelist : list of Node
+        nodelist : list[str]
             List of nodes of the walk
 
         Returns
@@ -148,7 +148,7 @@ class NodeTable:
         """
         if self.numwalks == 0:
             return np.nan
-        return np.mean(self.walk_lengths)
+        return float(np.mean(self.walk_lengths))
 
     def get_mean_node_length(self) -> float:
         """
@@ -161,7 +161,7 @@ class NodeTable:
         """
         if len(self.nodes.keys()) == 0:
             return np.nan
-        return np.mean([n.length for n in self.nodes.values()])
+        return float(np.mean([n.length for n in self.nodes.values()]))
 
     def get_total_node_length(self) -> int:
         """
@@ -185,7 +185,7 @@ class NodeTable:
         Returns
         -------
         list[str]
-            List of node Ids
+            List of node IDs
         """
         ws = walk_string.replace(">", ":").replace("<", ":").strip(":")
         return ws.split(":")
