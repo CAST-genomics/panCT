@@ -3,7 +3,6 @@ Utilities for dealing with node tables
 """
 
 import numpy as np
-from typing import List, Optional
 
 
 class Node:
@@ -78,9 +77,7 @@ class NodeTable:
         Get list of nodes from the walk
     """
 
-    def __init__(
-        self, gfa_file: Optional[str] = None, exclude_samples: Optional[List[str]] = []
-    ):
+    def __init__(self, gfa_file: str = None, exclude_samples: list[str] = []):
         self.nodes = {}  # node ID-> Node
         self.numwalks = 0
         self.walk_lengths = []
@@ -98,7 +95,7 @@ class NodeTable:
         """
         self.nodes[node.nodeid] = node
 
-    def add_walk(self, sampid: str, nodelist: List[Node]):
+    def add_walk(self, sampid: str, nodelist: list[Node]):
         """
         Add a walk to the node table
 
@@ -113,7 +110,7 @@ class NodeTable:
             self.nodes[n].add_sample(sampid)
         self.numwalks += 1
 
-    def get_walk_length(self, nodelist: List[Node]) -> int:
+    def get_walk_length(self, nodelist: list[Node]) -> int:
         """
         Get the total length of a walk
         through the given list of nodes
@@ -176,7 +173,7 @@ class NodeTable:
         """
         return np.sum([n.length for n in self.nodes.values()])
 
-    def get_nodes_from_walk(self, walk_string: str) -> List[str]:
+    def get_nodes_from_walk(self, walk_string: str) -> list[str]:
         """
         Get list of nodes from a walk string
 
@@ -187,13 +184,13 @@ class NodeTable:
 
         Returns
         -------
-        nodelist = list of str
+        list[str]
             List of node Ids
         """
         ws = walk_string.replace(">", ":").replace("<", ":").strip(":")
         return ws.split(":")
 
-    def load_from_gfa(self, gfa_file: str, exclude_samples: List[str] = []):
+    def load_from_gfa(self, gfa_file: str, exclude_samples: list[str] = []):
         # First parse all the nodes
         with open(gfa_file, "r") as f:
             for line in f:

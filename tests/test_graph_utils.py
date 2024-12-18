@@ -53,9 +53,7 @@ def test_node_table():
     nt = NodeTable(gfa_file=DATADIR / "basic_noseq.gfa")
     assert nt.get_mean_walk_length() == 95 / 4
     assert nt.numwalks == 4
-    nt = NodeTable(
-        gfa_file=DATADIR / "basic_noseq.gfa", exclude_samples=["GRCh38"]
-    )
+    nt = NodeTable(gfa_file=DATADIR / "basic_noseq.gfa", exclude_samples=["GRCh38"])
     assert nt.get_mean_walk_length() == 70 / 3
     assert nt.numwalks == 3
 
