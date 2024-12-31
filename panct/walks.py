@@ -48,6 +48,8 @@ def extract_walks(
     # what is the path to the shell script build_node_sample_map.sh ?
     script_path = Path(__file__).parent / "build_node_sample_map.sh"
 
+    log.info("Building a mapping of nodes to samples")
+
     subprocess.run(
         [script_path, graph, output],
         capture_output=True,
@@ -57,11 +59,13 @@ def extract_walks(
 
     # bgzip and tabix index the resulting file
     if also_index:
+        log.info("Bgzipping the output file")
         gz_file = output.with_suffix(".walk.gz")
         tabix_compress(str(output), str(gz_file), force=True)
         if not output_exists:
             output.unlink()
         try:
+            log.info("Indexing the output file")
             tabix_index(str(gz_file), seq_col=0, start_col=1, end_col=1, force=True)
         except OSError as e:
             # check if the error message matches what we expect if the file is unsorted

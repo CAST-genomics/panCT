@@ -64,6 +64,7 @@ def complexity(
         typer.Argument(
             exists=True,
             readable=True,
+            show_default=False,
             help="Path to the .gfa or .gbz file of a pangenome graph",
         ),
     ],
@@ -120,9 +121,10 @@ def walks(
     graph: Annotated[
         Path,
         typer.Argument(
-            help="Path to the .gfa file of a pangenome graph",
             exists=True,
             readable=True,
+            show_default=False,
+            help="Path to the .gfa file of a pangenome graph",
         ),
     ],
     output_file: Annotated[
@@ -137,7 +139,6 @@ def walks(
     from .logging import getLogger
 
     log = getLogger(name="walks", level=verbosity.value)
-
     extract_walks(graph, output_file, log)
 
 
