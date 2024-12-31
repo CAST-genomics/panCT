@@ -9,7 +9,7 @@ Unlike walks stored in the GFA format, the walks in the ``.walk`` format are des
 
 Overview
 ~~~~~~~~
-A ``.walk`` file is tab-delimited and has four or more columns per line:
+A ``.walk`` file is tab-delimited and has three or more columns per line:
 
 .. list-table::
    :widths: 15 25

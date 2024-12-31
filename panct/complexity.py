@@ -3,16 +3,14 @@ Compute complexity scores for regions
 of a pangenome graph
 """
 
-import os
-import sys
 import time
 import logging
 from pathlib import Path
 from typing import Optional
 
-from . import utils as utils
 from .logging import getLogger
 from . import gbz_utils as gbz
+from .data import Region, Regions
 from . import graph_utils as gutils
 
 AVAILABLE_METRICS = ["sequniq-normwalk", "sequniq-normnode"]
@@ -20,11 +18,11 @@ AVAILABLE_METRICS = ["sequniq-normwalk", "sequniq-normnode"]
 
 def main(
     graph_file: Path,
-    output_file: str,
-    region: str,
-    region_file: str,
-    metrics: str,
-    reference: str,
+    output_file: str = "-",
+    region_str: str = "",
+    region_file: Path = None,
+    metrics: str = "sequniq-normwalk",
+    reference: str = "GRCh38",
     log: logging.Logger = None,
 ):
     """
@@ -41,18 +39,18 @@ def main(
     ----------
     graph_file : Path
         Path to GFA or GBZ file
-    output_file : str
+    output_file : str, optional
         Path to output file
-    region : str
+    region_str : str, optional
         chrom:start-end of region to process
-    region_file : str
+    region_file : Path, optional
         Path to BED file of regions to process
-    metrics : str
+    metrics : str, optional
         Comma-separated list of metrics to compute
-    reference : str
+    reference : str, optional
         Sample ID of reference
-    log : logging.Logger
-        logger object
+    log : logging.Logger, optional
+        Logger object
 
     Returns
     -------
@@ -66,6 +64,7 @@ def main(
     #### Check files and indices #####
     file_type = None
     if graph_file.suffix == ".gfa":
+        # TODO: also handle .gfa.gz
         file_type = "gfa"
     elif graph_file.suffix == ".gbz":
         file_type = "gbz"
@@ -94,7 +93,7 @@ def main(
 
     ##### If GFA, just process the whole graph #####
     if file_type == "gfa":
-        if region != "" or region_file != "":
+        if region_str != "" or region_file is not None:
             log.warning("Regions are ignored when processing GFA")
         exclude = []
         if reference != "":
@@ -112,19 +111,17 @@ def main(
         outf.flush()
         end_time = time.time()
         total_time = end_time - start_time
-        sys.stderr.write(f"Total time: \t{total_time}\n")
+        log.debug(f"Total time: \t{total_time}\n")
         outf.close()
         return 0
 
     #### If GBZ: Set up list of regions to process #####
     regions = []
-    if region != "":
-        regions.append(utils.parse_region_string(region))
-    if region_file != "":
-        if not os.path.exists(region_file):
-            log.critical(f"Could not find {region_file}")
-            return 1
-        regions.extend(utils.parse_regions_file(region_file))
+    if region_str != "":
+        region = Region.load(region_str)
+        regions = Regions((region,), log=log)
+    if region_file is not None:
+        regions = Regions.load(region_file, log=log)
     if len(regions) == 0:
         log.critical("Did not detect any regions")
         return 1
@@ -160,7 +157,7 @@ def main(
     ##### Cleanup #####
     end_time = time.time()
     time_per_region = (end_time - start_time) / len(regions)
-    sys.stderr.write(f"Time per region\t{time_per_region}\n")
+    log.debug(f"Time per region\t{time_per_region}\n")
     outf.close()
     return 0
 

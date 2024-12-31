@@ -13,20 +13,23 @@ def complexity(
     graph: Annotated[
         Path,
         typer.Argument(
-            help="Path to the .gfa or .gbz file of a pangenome graph",
             exists=True,
             readable=True,
+            help="Path to the .gfa or .gbz file of a pangenome graph",
         ),
     ],
     region: Annotated[
         str, typer.Option("--region", help="Region to compute complexity over")
     ] = "",
     region_file: Annotated[
-        str,
+        Path,
         typer.Option(
-            "--region-file", help="Bed file of regions to compute complexity over"
+            "--region-file",
+            exists=True,
+            readable=True,
+            help="Bed file of regions to compute complexity over",
         ),
-    ] = "",
+    ] = None,
     metrics: Annotated[
         str,
         typer.Option(

@@ -10,7 +10,7 @@ from shutil import which
 from pathlib import Path
 from typing import Optional
 
-from .utils import Region
+from .data import Region
 from . import graph_utils as gutils
 
 
