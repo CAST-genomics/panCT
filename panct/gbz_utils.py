@@ -16,7 +16,7 @@ from . import graph_utils as gutils
 
 def extract_region_from_gbz(
     gbz_file: Path, region: Region, reference: str
-) -> Optional[str]:
+) -> Optional[Path]:
     """
     Extract GFA for a region from an indexed GBZ file
 
@@ -31,7 +31,7 @@ def extract_region_from_gbz(
 
     Returns
     -------
-    gfa_file : str
+    gfa_file : Path
         Path to GFA file
     """
     tmpfile = tempfile.NamedTemporaryFile(delete=False)
@@ -49,7 +49,7 @@ def extract_region_from_gbz(
     if proc.returncode != 0:
         return None
     else:
-        return tmpfile.name
+        return Path(tmpfile.name)
 
 
 def check_gbzbase_installed(log: logging.Logger):

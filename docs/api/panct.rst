@@ -20,17 +20,17 @@ Module contents
 panct.data.data module
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automodule:: haptools.data.data
+.. automodule:: panct.data.data
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. _api-haptools-data-regions:
+.. _api-panct-data-regions:
 
-haptools.data.regions module
+panct.data.regions module
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automodule:: haptools.data.regions
+.. automodule:: panct.data.regions
    :members:
    :undoc-members:
    :show-inheritance:

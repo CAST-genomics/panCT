@@ -98,7 +98,7 @@ def main(
         exclude = []
         if reference != "":
             exclude = [reference]
-        node_table = gutils.NodeTable(str(graph_file), exclude)
+        node_table = gutils.NodeTable(graph_file, exclude)
         metric_results = []
         for m in metrics_list:
             metric_results.append(compute_complexity(node_table, m))
