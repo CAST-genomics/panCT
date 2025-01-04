@@ -44,6 +44,9 @@ Below are additional examples based on the HPRC .gfa format graph (not included 
 
 This may take some time. You can speed it up by allocating more memory and CPUs. The command should scale automatically with the resources that have been allocated to it.
 
+.. warning::
+  The ``walks`` command may store large files in your system's temporary directory. On some systems, this directory may be too small for the entire HPRC pangneome. So we recommend setting the ``TMPDIR`` environment variable to a larger directory before calling the ``walks`` command.
+
 Detailed Usage
 ~~~~~~~~~~~~~~
 
