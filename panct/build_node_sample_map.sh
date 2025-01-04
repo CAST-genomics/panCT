@@ -3,7 +3,7 @@
 # Extract walks (W lines) from a GFA file, flip them so that they can be queried by node instead of sample, and write the results to a TSV file
 
 # arg1: GFA file from which to extract walks
-# arg2: VCF file from which to obtain STR genotypes
+# arg2 (optional): Path to .walk tab separated file to which to write output. Defaults to stdout
 
 # ex: ./build_node_sample_map.sh tests/data/basic.gfa basic.walk
 
@@ -25,4 +25,4 @@ current==$1 { line = line OFS $2; next; }
 { print line; current=$1; line=$0; }
 END { print line }' | awk -F '	' -v OFS='	' 'NF {
   print "" FS $0
-}' > "$2"
+}' > "${2:-/dev/stdout}"
