@@ -52,7 +52,6 @@ def extract_walks(
 
     subprocess.run(
         [script_path, graph, output],
-        capture_output=True,
         text=True,
         check=True,
     )
