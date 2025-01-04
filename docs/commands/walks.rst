@@ -25,11 +25,11 @@ To create a ``.walk.gz`` and ``.walk.gz.tbi`` file adjacent to a GFA, just speci
 
   panct walks tests/data/basic.gfa
 
-You can also specify the output file path manually.
+You can also specify the output file path manually. If the output path does not have a ``.gz`` ending, an index will not be created automatically.
 
 .. code-block:: bash
 
-  panct walks --out basic.walk.gz tests/data/basic.gfa
+  panct walks --out basic.walk tests/data/basic.gfa
 
 All files used in these examples are described :doc:`here </project_info/example_files>`.
 

@@ -14,12 +14,16 @@ DATADIR = Path(__file__).parent.joinpath("data")
 
 
 def test_basic_wo_gz(capfd):
+    """
+    panct walks --out basic.walk tests/data/basic.gfa
+    """
     in_file = DATADIR / "basic.gfa"
-    out_file = Path("test.walk")
+    out_file = Path("basic.walk")
+    assert not out_file.exists()
     exp_file = in_file.with_suffix(".walk")
 
     # create a simple test.walk file
-    cmd = f"walks -o {out_file} {in_file}"
+    cmd = f"walks --out {out_file} {in_file}"
     result = runner.invoke(app, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()
     assert captured.out == ""
@@ -31,8 +35,12 @@ def test_basic_wo_gz(capfd):
 
 
 def test_basic_gz(capfd):
+    """
+    panct walks tests/data/basic.gfa
+    """
     in_file = DATADIR / "basic.gfa"
-    out_file = Path("test.walk.gz")
+    out_file = Path("basic.walk.gz")
+    assert not out_file.exists()
     exp_file = in_file.with_suffix(".walk")
 
     # copy the file so that we don't affect anything in the tests/data directory
@@ -44,6 +52,7 @@ def test_basic_gz(capfd):
     result = runner.invoke(app, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()
     assert captured.out == ""
+    assert out_file.exists()
     with gzip.open(out_file, "rb") as f:
         out_file_content = f.read().decode("utf-8")
     with open(exp_file, "r") as f:

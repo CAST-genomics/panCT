@@ -46,7 +46,7 @@ Examples
 ~~~~~~~~
 .. code-block:: bash
 
-  panct complexity --out test.tab tests/data/test.gfa
+  panct complexity --out test.tab tests/data/basic.gfa
 
 All files used in these examples are described :doc:`here </project_info/example_files>`.
 

@@ -13,6 +13,9 @@ from panct.logging import getLogger
 
 
 def test_complexity_main(tmpdir):
+    """
+    panct complexity --out test.tab tests/data/basic.gfa
+    """
     # Set up defaults
     graph_file = ""
     output_file = ""
@@ -38,7 +41,7 @@ def test_complexity_main(tmpdir):
 
     # Process GFA file
     graph_file = DATADIR / "basic.gfa"
-    output_file = str(tmpdir / "test.tab")
+    output_file = tmpdir / "test.tab"
     assert (
         main(
             graph_file,
