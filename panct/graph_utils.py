@@ -221,20 +221,20 @@ class NodeTable:
         if not walk_file.exists():
             walk_file = walk_file.with_suffix(".walk.gz")
 
-        if walk_file.exists():
-            # TODO: get nodes from .walk file and add with self.add_walk()
-            pass
-        else:
-            # Second pass to get the walks
-            with open(gfa_file, "r") as f:
-                for line in f:
-                    linetype = line.split()[0]
-                    if linetype != "W":
-                        continue
-                    sampid = line.split()[1]
-                    if sampid in exclude_samples:
-                        continue
-                    hapid = line.split()[2]
-                    walk = line.split()[6]
-                    nodes = self.get_nodes_from_walk(walk)
-                    self.add_walk(f"{sampid}:{hapid}", nodes)
+        # TODO: get nodes from .walk file and add with self.add_walk()
+        # if walk_file.exists():
+        # else:
+
+        # Second pass to get the walks
+        with open(gfa_file, "r") as f:
+            for line in f:
+                linetype = line.split()[0]
+                if linetype != "W":
+                    continue
+                sampid = line.split()[1]
+                if sampid in exclude_samples:
+                    continue
+                hapid = line.split()[2]
+                walk = line.split()[6]
+                nodes = self.get_nodes_from_walk(walk)
+                self.add_walk(f"{sampid}:{hapid}", nodes)
