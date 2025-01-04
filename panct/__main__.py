@@ -97,7 +97,7 @@ def complexity(
     ] = "GRCh38",
     output_file: Annotated[
         Path, typer.Option("--out", help="Name of output file")
-    ] = Path("-"),
+    ] = Path("/dev/stdout"),
     verbosity: verbose = Verbosity.info,
 ):
     """
@@ -108,7 +108,7 @@ def complexity(
 
     log = getLogger(name="complexity", level=verbosity.value)
     retcode = complexity_main(
-        graph, str(output_file), region, region_file, metrics, reference, log
+        graph, output_file, region, region_file, metrics, reference, log
     )
     if retcode != 0:
         typer.Exit(code=retcode)

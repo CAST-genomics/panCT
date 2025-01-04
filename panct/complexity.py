@@ -18,7 +18,7 @@ AVAILABLE_METRICS = ["sequniq-normwalk", "sequniq-normnode"]
 
 def main(
     graph_file: Path,
-    output_file: str = "-",
+    output_file: Path = Path("/dev/stdout"),
     region_str: str = "",
     region_file: Path = None,
     metrics: str = "sequniq-normwalk",
