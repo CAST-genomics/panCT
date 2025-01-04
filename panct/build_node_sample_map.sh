@@ -1,5 +1,13 @@
 #!/usr/bin/env sh
 
+# Extract walks (W lines) from a GFA file, flip them so that they can be queried by node instead of sample, and write the results to a TSV file
+
+# arg1: GFA file from which to extract walks
+# arg2: VCF file from which to obtain STR genotypes
+
+# ex: ./build_node_sample_map.sh tests/data/basic.gfa basic.walk
+
+
 { if [ "${1##*.}" = "gz" ]; then
   gzip -dc "$1"
 else
