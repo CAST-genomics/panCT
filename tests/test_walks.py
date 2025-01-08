@@ -66,3 +66,32 @@ def test_basic_gz(capfd):
     out_file.unlink()
     tmp_in_file.unlink()
     out_file.with_suffix(".gz.tbi").unlink()
+
+
+def test_basic_stdout(capfd):
+    """
+    panct walks --out /dev/stdout tests/data/basic.gfa
+    """
+    in_file = DATADIR / "basic.gfa"
+    out_file = Path("/dev/stdout")
+    exp_file = in_file.with_suffix(".walk")
+
+    with open(exp_file, "r") as f:
+        exp_file_content = f.read()
+
+    # output a simple .walk file to stdout
+    cmd = f"walks --out {out_file} {in_file}"
+    result = runner.invoke(app, cmd.split(" "), catch_exceptions=False)
+    captured = capfd.readouterr()
+    # check that the output text is the same as the file in tests/data/
+    assert captured.out == exp_file_content
+    assert result.exit_code == 0
+
+    # also try with an output of "-"
+    out_file = Path("-")
+    cmd = f"walks --out {out_file} {in_file}"
+    result = runner.invoke(app, cmd.split(" "), catch_exceptions=False)
+    captured = capfd.readouterr()
+    # check that the output text is the same as the file in tests/data/
+    assert captured.out == exp_file_content
+    assert result.exit_code == 0

@@ -38,23 +38,25 @@ def extract_walks(
             output = graph.with_suffix("").with_suffix(".walk.gz")
         else:
             output = graph.with_suffix(".walk.gz")
+    elif output == Path("/dev/stdout") or output == Path("-"):
+        output = Path("")
 
     also_index = False
     if output.suffix == ".gz":
         also_index = True
         output = output.with_suffix("")
-    output_exists = output.exists()
 
     # what is the path to the shell script build_node_sample_map.sh ?
     script_path = Path(__file__).parent / "build_node_sample_map.sh"
 
-    log.info("Building a mapping of nodes to samples")
+    args = [script_path, graph]
+    output_exists = False
+    if output != Path(""):
+        output_exists = output.exists()
+        args.append(output)
 
-    subprocess.run(
-        [script_path, graph, output],
-        text=True,
-        check=True,
-    )
+    log.info("Building a mapping of nodes to samples")
+    subprocess.run(args, text=True, check=True)
 
     # bgzip and tabix index the resulting file
     if also_index:
