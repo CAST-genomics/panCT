@@ -31,14 +31,6 @@ You can also specify the output file path manually. If the output path does not 
 
   panct walks --out basic.walk tests/data/basic.gfa
 
-.. warning::
-  Even if the output path has a ``.gz`` ending, the uncompressed contents of the ``.walk`` file will be temporarily written to disk. On some systems, this might require too much space. In that case, you can compress and index the output yourself.
-
-  .. code-block:: bash
-
-    panct walks --out /dev/stdout tests/data/basic.gfa | bgzip > basic.walk.gz
-    tabix -s 1 -b 2 -e 2 basic.walk.gz
-
 All files used in these examples are described :doc:`here </project_info/example_files>`.
 
 Additional examples
