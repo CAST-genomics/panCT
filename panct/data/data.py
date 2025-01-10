@@ -30,7 +30,7 @@ class Data(ABC):
 
     @classmethod
     @abstractmethod
-    def load(cls: Type[Data], fname: Path | str) -> Data:
+    def read(cls: Type[Data], fname: Path | str) -> Data:
         """
         Read the file contents and perform any recommended pre-processing
 

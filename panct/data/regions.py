@@ -5,11 +5,8 @@ Utilities for panct package
 from __future__ import annotations
 import re
 from pathlib import Path
+from logging import Logger
 from typing import Iterator, Type
-from logging import getLogger, Logger
-
-import numpy as np
-import numpy.typing as npt
 
 from .data import Data
 
@@ -34,7 +31,7 @@ class Region:
         self.end = end
 
     @classmethod
-    def load(cls: Type[Region], region: str) -> Region:
+    def read(cls: Type[Region], region: str) -> Region:
         """
         Extract chrom, start, end from coordinate string
 
@@ -91,7 +88,7 @@ class Regions(Data):
         return self.data[index]
 
     @classmethod
-    def load(cls: Type[Regions], fname: Path | str, log: Logger = None) -> Regions:
+    def read(cls: Type[Regions], fname: Path | str, log: Logger = None) -> Regions:
         """
         Extract list of regions from BED file
 
