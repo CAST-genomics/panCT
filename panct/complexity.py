@@ -118,10 +118,10 @@ def main(
     #### If GBZ: Set up list of regions to process #####
     regions = []
     if region_str != "":
-        region = Region.load(region_str)
+        region = Region.read(region_str)
         regions = Regions((region,), log=log)
     if region_file is not None:
-        regions = Regions.load(region_file, log=log)
+        regions = Regions.read(region_file, log=log)
     if len(regions) == 0:
         log.critical("Did not detect any regions")
         return 1
