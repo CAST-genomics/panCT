@@ -25,4 +25,10 @@ current==$1 { line = line OFS $2; next; }
 { print line; current=$1; line=$0; }
 END { print line }' | awk -F '	' -v OFS='	' 'NF {
   print "" FS $0
-}' > "${2:-/dev/stdout}"
+}' | {
+  if [ "${2##*.}" = "gz" ]; then
+    bgzip
+  else
+    cat
+  fi
+} > "${2:-/dev/stdout}"

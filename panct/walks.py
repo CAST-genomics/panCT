@@ -4,7 +4,9 @@ Extract walks (W lines) from a GFA file into an indexed tab-separated format
 
 import logging
 import subprocess
+from shutil import which
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 
 from pysam import tabix_compress, tabix_index
 
@@ -42,17 +44,23 @@ def extract_walks(
         output = Path("")
 
     also_index = False
+    tmp_walk = None
+    gz_file = output
     if output.suffix == ".gz":
         also_index = True
-        output = output.with_suffix("")
+        if which("bgzip") is None:
+            # if bgzip isn't installed, we need to bgzip the output ourselves
+            # so we first create an uncompressed file in $TMPDIR called tmp_walk
+            gz_file = output.with_suffix("").with_suffix(".walk.gz")
+            tmp_walk = NamedTemporaryFile(delete=False)
+            output = Path(tmp_walk.name)
 
     # what is the path to the shell script build_node_sample_map.sh ?
     script_path = Path(__file__).parent / "build_node_sample_map.sh"
 
     args = [script_path, graph]
-    output_exists = False
+    # is the output stdout?
     if output != Path(""):
-        output_exists = output.exists()
         args.append(output)
 
     log.info("Building a mapping of nodes to samples")
@@ -60,10 +68,11 @@ def extract_walks(
 
     # bgzip and tabix index the resulting file
     if also_index:
-        log.info("Bgzipping the output file")
-        gz_file = output.with_suffix(".walk.gz")
-        tabix_compress(str(output), str(gz_file), force=True)
-        if not output_exists:
+        if tmp_walk is not None:
+            log.info("Bgzipping the output file")
+            tabix_compress(str(output), str(gz_file), force=True)
+            # now, properly close and delete the temporary file
+            tmp_walk.close()
             output.unlink()
         try:
             log.info("Indexing the output file")

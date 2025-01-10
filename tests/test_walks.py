@@ -19,7 +19,8 @@ def test_basic_wo_gz(capfd):
     """
     in_file = DATADIR / "basic.gfa"
     out_file = Path("basic.walk")
-    assert not out_file.exists()
+    if out_file.exists():
+        out_file.unlink()
     exp_file = in_file.with_suffix(".walk")
 
     # create a simple test.walk file
@@ -40,7 +41,8 @@ def test_basic_gz(capfd):
     """
     in_file = DATADIR / "basic.gfa"
     out_file = Path("basic.walk.gz")
-    assert not out_file.exists()
+    if out_file.exists():
+        out_file.unlink()
     exp_file = in_file.with_suffix(".walk")
 
     # copy the file so that we don't affect anything in the tests/data directory
