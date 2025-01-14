@@ -1,5 +1,5 @@
 """
-Utilities for panct package
+Utilities for processing regions
 """
 
 from __future__ import annotations
@@ -96,6 +96,8 @@ class Regions(Data):
         ----------
         fname : Path | str
             BED file of regions
+        log : Logger, optional
+            A Logger object to use for debugging statements
 
         Returns
         -------
@@ -124,4 +126,4 @@ class Regions(Data):
                 except ValueError:
                     raise ValueError(f"Improper end coordinate on line: {line}")
                 regions.append(Region(chrom, start, end))
-        return cls(tuple(regions))
+        return cls(tuple(regions), log=log)
