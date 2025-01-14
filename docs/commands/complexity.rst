@@ -24,7 +24,7 @@ For a node :math:`n` in the region, :math:`|n|` represents the length (in base p
 
 The percent of sample haplotypes (aka "walks") that visit node :math:`n` is represented by :math:`p_n`.
 
-However, :math:`L` can be computed in one of two ways. Each of these results in a different way of computing complexity:
+:math:`L` can be computed in one of two ways:
 
 1. If ``--metrics sequniq-normwalk`` is specified, :math:`L` is computed as the average length of all walks in the region
 2. If ``--metrics sequniq-normnode`` is specified, :math:`L` instead represents the average length of all nodes in the region

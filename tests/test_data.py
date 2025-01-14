@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from panct.data import Region, Regions
+from panct.data import Region, Regions, Walks
 
 DATADIR = Path(__file__).parent.joinpath("data")
 
@@ -44,3 +44,46 @@ class TestRegions:
             Regions.read(DATADIR / "invalid_regions2.bed")
         with pytest.raises(ValueError):
             Regions.read(DATADIR / "invalid_regions3.bed")
+
+
+class TestWalks:
+    def _get_dummy_walks(self):
+        data = {}
+        data[1] = set(("GRCh38", "samp1", "samp2"))
+        data[2] = set(("GRCh38", "samp1"))
+        return Walks(data=data)
+
+    def test_parse_walks_file(self):
+        expected = self._get_dummy_walks()
+
+        nodes = Walks.read(DATADIR / "basic.walk")
+        assert nodes.data == expected.data
+
+        nodes = Walks.read(DATADIR / "basic.walk", region="1-2")
+        assert nodes.data == expected.data
+
+        nodes = Walks.read(DATADIR / "basic.walk", region="1-")
+        assert nodes.data == expected.data
+
+        nodes = Walks.read(DATADIR / "basic.walk", region="-2")
+        assert nodes.data == expected.data
+
+        nodes = Walks.read(DATADIR / "basic.walk.gz")
+        assert nodes.data == expected.data
+
+        nodes = Walks.read(DATADIR / "basic.walk.gz", region="1-2")
+        assert nodes.data == expected.data
+
+        nodes = Walks.read(DATADIR / "basic.walk.gz", region="1-")
+        assert nodes.data == expected.data
+
+        nodes = Walks.read(DATADIR / "basic.walk.gz", region="-2")
+        assert nodes.data == expected.data
+
+        del expected.data[2]
+
+        nodes = Walks.read(DATADIR / "basic.walk", region="1-1")
+        assert nodes.data == expected.data
+
+        nodes = Walks.read(DATADIR / "basic.walk.gz", region="1-1")
+        assert nodes.data == expected.data

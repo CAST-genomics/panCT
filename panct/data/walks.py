@@ -12,47 +12,19 @@ from pysam import TabixFile
 from .data import Data
 
 
-class Node:
-    """
-    Stores metadata about a node in the graph
-
-    Attributes
-    ----------
-    nodeid : int
-        ID of the node
-    samples : set of str
-        IDs of samples (haplotypes) that pass through this node
-    """
-
-    def __init__(self, nodeid: int, samples: set[str] = set()):
-        self.nodeid = nodeid
-        self.samples = samples
-
-    def add_sample(self, sampid: str):
-        """
-        Add a sample to the node
-
-        Parameters
-        ----------
-        sampid : str
-            ID of the sample (haplotype) to add
-        """
-        self.samples.add(sampid)
-
-
 class Walks(Data):
     """
     Store walks from a .walk file
 
     Attributes
     ----------
-    data : dict[str, Node]
-        A bunch of Node objects, keyed by node ID
+    data : dict[str, set[str]]
+        A bunch of nodes, stored as a mapping of node IDs to sets of sample strings
     log: Logger
         A logging instance for recording debug statements.
     """
 
-    def __init__(self, data: dict[str, Node], log: Logger = None):
+    def __init__(self, data: dict[str, set[str]], log: Logger = None):
         super().__init__(log=log)
         self.data = data
 
@@ -92,7 +64,7 @@ class Walks(Data):
                     for line in f.fetch(region=region_str):
                         samples = line.strip().split("\t")
                         node = int(samples.pop(0))
-                        nodes[node] = Node(node, set(samples))
+                        nodes[node] = set(samples)
                 return cls(nodes, log)
             except ValueError:
                 pass
@@ -107,11 +79,11 @@ class Walks(Data):
             if start == float("inf"):
                 start = -start
         # Now iterate over the lines
-        with open(fname, "r") as f:
+        with cls.hook_compressed(fname, "r") as f:
             for line in f:
-                samples = line.strip()
+                samples = str(line.strip())
                 node = int(samples.split("\t", maxsplit=1)[0])
                 if node < start or node > end:
                     continue
-                nodes[node] = Node(node, set(samples.split("\t")[1:]))
+                nodes[node] = set(samples.split("\t")[1:])
         return cls(nodes, log)

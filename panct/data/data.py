@@ -59,7 +59,7 @@ class Data(ABC):
     #     pass
 
     @staticmethod
-    def hook_compressed(filename: str, mode: str) -> gzip.GzipFile | IO[Any]:
+    def hook_compressed(filename: Path | str, mode: str) -> gzip.GzipFile | IO[Any]:
         """
         A utility to help open files regardless of their compression
 
@@ -68,7 +68,7 @@ class Data(ABC):
 
         Parameters
         ----------
-        filename : str
+        filename : Path | str
             The path to the file
         mode : str
             Either 'r' for read or 'w' for write
