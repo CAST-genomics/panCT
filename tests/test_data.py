@@ -49,8 +49,8 @@ class TestRegions:
 class TestWalks:
     def _get_dummy_walks(self):
         data = {}
-        data[1] = set(("GRCh38", "samp1", "samp2"))
-        data[2] = set(("GRCh38", "samp1"))
+        data[1] = set(("GRCh38:0", "samp1:0", "samp1:1", "samp2:1"))
+        data[2] = set(("GRCh38:0", "samp1:0", "samp1:1"))
         return Walks(data=data)
 
     def test_parse_walks_file(self):
