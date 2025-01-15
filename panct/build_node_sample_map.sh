@@ -20,7 +20,7 @@ fi } | grep -E '^W' | cut -f 2,7 | sed 's/	//;s/</	/g;s/>/	/g' | awk -F '	' -v O
       print $i, key;
     }
   }
-}' | sort -u -t '	' -k1,1n -k2,2 | awk -F '	' -v OFS='	' '
+}' | sort -t '	' -k1,1n -k2,2 | awk -F '	' -v OFS='	' '
 current==$1 { line = line OFS $2; next; }
 { print line; current=$1; line=$0; }
 END { print line }' | awk -F '	' -v OFS='	' 'NF {
