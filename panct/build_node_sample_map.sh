@@ -12,7 +12,7 @@
   gzip -dc "$1"
 else
   cat "$1"
-fi } | grep -E '^W' | cut -f 2,7 | sed 's/	//;s/</	/g;s/>/	/g' | awk -F '	' -v OFS='	' '{
+fi } | grep -E '^W' | cut -f 2,3,7 | sed 's/	/:/;s/	//;s/</	/g;s/>/	/g' | awk -F '	' -v OFS='	' '{
   for (i = 1; i <= NF; i++) {
     if (i == 1) {
       key = $i;

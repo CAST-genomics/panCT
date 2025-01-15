@@ -22,7 +22,9 @@ A ``.walk`` file is tab-delimited and has three or more columns per line:
    * - node ID
      - The second column contains the ID of the node
    * - sample IDs
-     - Any other columns will contain the IDs of samples with a haplotype that passed through this node
+     - Any other columns will contain the IDs of samples with a haplotype that passed through this node.
+
+Each sample ID will have a colon and integer appended to it. The integer will denote the chromosomal strand of the sample that the walk belongs to.
 
 Examples
 ~~~~~~~~
