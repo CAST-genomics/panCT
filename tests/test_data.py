@@ -62,7 +62,6 @@ class TestWalks:
         expected = self._get_dummy_walks()
 
         nodes = Walks.read(DATADIR / "basic.walk")
-        breakpoint()
         assert nodes.data == expected.data
 
         nodes = Walks.read(DATADIR / "basic.walk", region="1-2")
