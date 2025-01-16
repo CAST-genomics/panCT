@@ -6,6 +6,7 @@ from __future__ import annotations
 from typing import Type
 from pathlib import Path
 from logging import Logger
+from collections import Counter
 
 from pysam import TabixFile
 
@@ -18,13 +19,13 @@ class Walks(Data):
 
     Attributes
     ----------
-    data : dict[str, set[str]]
-        A bunch of nodes, stored as a mapping of node IDs to sets of sample strings
+    data : dict[str, Counter[tuple[str, int]]]
+        A bunch of nodes, stored as a mapping of node IDs to tuples of (sample labels, haplotype ID)
     log: Logger
         A logging instance for recording debug statements.
     """
 
-    def __init__(self, data: dict[str, set[str]], log: Logger = None):
+    def __init__(self, data: dict[str, Counter[tuple[str, int]]], log: Logger = None):
         super().__init__(log=log)
         self.data = data
 
@@ -54,6 +55,7 @@ class Walks(Data):
             A Walks object loaded with a bunch of Node objects
         """
         nodes = {}
+        parse_samp = lambda samp: (samp[0], int(samp[1]))
         # Try to read the file with tabix
         if Path(fname).suffix == ".gz" and region is not None:
             # preprocess the region into a tabix region string
@@ -64,7 +66,10 @@ class Walks(Data):
                     for line in f.fetch(region=region_str):
                         samples = line.strip().split("\t")
                         node = int(samples.pop(0))
-                        nodes[node] = set(samples)
+
+                        nodes[node] = Counter(
+                            parse_samp(samp.rsplit(":", 1)) for samp in samples
+                        )
                 return cls(nodes, log)
             except ValueError:
                 pass
@@ -85,5 +90,7 @@ class Walks(Data):
                 node = int(samples.split("\t", maxsplit=1)[0])
                 if node < start or node > end:
                     continue
-                nodes[node] = set(samples.split("\t")[1:])
+                nodes[node] = Counter(
+                    parse_samp(samp.rsplit(":", 1)) for samp in samples.split("\t")[1:]
+                )
         return cls(nodes, log)

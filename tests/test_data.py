@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from collections import Counter
 
 import pytest
 
@@ -49,14 +50,19 @@ class TestRegions:
 class TestWalks:
     def _get_dummy_walks(self):
         data = {}
-        data[1] = set(("GRCh38:0", "samp1:0", "samp1:1", "samp2:1"))
-        data[2] = set(("GRCh38:0", "samp1:0", "samp1:1"))
+        data[1] = Counter(
+            (("GRCh38", 0), ("samp1", 0), ("samp1", 1), ("samp2", 1)),
+        )
+        data[2] = Counter(
+            (("GRCh38", 0), ("samp1", 0), ("samp1", 1)),
+        )
         return Walks(data=data)
 
     def test_parse_walks_file(self):
         expected = self._get_dummy_walks()
 
         nodes = Walks.read(DATADIR / "basic.walk")
+        breakpoint()
         assert nodes.data == expected.data
 
         nodes = Walks.read(DATADIR / "basic.walk", region="1-2")
