@@ -76,7 +76,6 @@ Follow these steps to set up a development environment.
     .. code-block:: bash
 
         conda run -n panct poetry install
-
 3. Now, whenever you'd like to run/import ``panct`` or ``pytest``, you will first need to activate both environments
 
     .. code-block:: bash

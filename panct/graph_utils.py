@@ -2,9 +2,9 @@
 Utilities for dealing with node tables
 """
 
+from pathlib import Path
+
 import numpy as np
-from typing import List, Optional
-from . import gbz_utils as gbz
 
 
 class Node:
@@ -55,7 +55,7 @@ class NodeTable:
         Dictionary of nodes, indexed by node ID
     numwalks : int
         Number of walks going through this region
-    walk_lengths : list of int
+    walk_lengths : list[int]
         List of lengths of walks through this region
 
     Methods
@@ -79,9 +79,7 @@ class NodeTable:
         Get list of nodes from the walk
     """
 
-    def __init__(
-        self, gfa_file: Optional[str] = None, exclude_samples: Optional[List[str]] = []
-    ):
+    def __init__(self, gfa_file: Path = None, exclude_samples: list[str] = []):
         self.nodes = {}  # node ID-> Node
         self.numwalks = 0
         self.walk_lengths = []
@@ -99,7 +97,7 @@ class NodeTable:
         """
         self.nodes[node.nodeid] = node
 
-    def add_walk(self, sampid: str, nodelist: List[Node]):
+    def add_walk(self, sampid: str, nodelist: list[str]):
         """
         Add a walk to the node table
 
@@ -107,21 +105,21 @@ class NodeTable:
         ----------
         sampid : str
             ID of the walk
-        nodelist : list of Node
+        nodelist : list[str]
         """
         self.walk_lengths.append(self.get_walk_length(nodelist))
         for n in nodelist:
             self.nodes[n].add_sample(sampid)
         self.numwalks += 1
 
-    def get_walk_length(self, nodelist: List[Node]) -> int:
+    def get_walk_length(self, nodelist: list[str]) -> int:
         """
         Get the total length of a walk
         through the given list of nodes
 
         Parameters
         ----------
-        nodelist : list of Node
+        nodelist : list[str]
             List of nodes of the walk
 
         Returns
@@ -152,7 +150,7 @@ class NodeTable:
         """
         if self.numwalks == 0:
             return np.nan
-        return np.mean(self.walk_lengths)
+        return float(np.mean(self.walk_lengths))
 
     def get_mean_node_length(self) -> float:
         """
@@ -165,7 +163,7 @@ class NodeTable:
         """
         if len(self.nodes.keys()) == 0:
             return np.nan
-        return np.mean([n.length for n in self.nodes.values()])
+        return float(np.mean([n.length for n in self.nodes.values()]))
 
     def get_total_node_length(self) -> int:
         """
@@ -177,7 +175,7 @@ class NodeTable:
         """
         return np.sum([n.length for n in self.nodes.values()])
 
-    def get_nodes_from_walk(self, walk_string: str) -> List[str]:
+    def get_nodes_from_walk(self, walk_string: str) -> list[str]:
         """
         Get list of nodes from a walk string
 
@@ -188,13 +186,13 @@ class NodeTable:
 
         Returns
         -------
-        nodelist = list of str
-            List of node Ids
+        list[str]
+            List of node IDs
         """
         ws = walk_string.replace(">", ":").replace("<", ":").strip(":")
         return ws.split(":")
 
-    def load_from_gfa(self, gfa_file: str, exclude_samples: List[str] = []):
+    def load_from_gfa(self, gfa_file: Path, exclude_samples: list[str] = []):
         # First parse all the nodes
         with open(gfa_file, "r") as f:
             for line in f:
@@ -213,6 +211,19 @@ class NodeTable:
                 if nodelen == 0:
                     raise ValueError(f"Could not determine node length for {nodeid}")
                 self.add_node(Node(nodeid, length=nodelen))
+
+        # try to find the .walk file
+        walk_file = Path("")
+        if gfa_file.suffix == ".gz":
+            walk_file = gfa_file.with_suffix("").with_suffix(".walk")
+        else:
+            walk_file = gfa_file.with_suffix("")
+        if not walk_file.exists():
+            walk_file = walk_file.with_suffix(".walk.gz")
+
+        # TODO: get nodes from .walk file and add with self.add_walk()
+        # if walk_file.exists():
+        # else:
 
         # Second pass to get the walks
         with open(gfa_file, "r") as f:

@@ -3,15 +3,14 @@ Compute complexity scores for regions
 of a pangenome graph
 """
 
-import logging
-import os
-import sys
 import time
-import subprocess
+import logging
 from pathlib import Path
+from typing import Optional
 
-from . import utils as utils
+from .logging import getLogger
 from . import gbz_utils as gbz
+from .data import Region, Regions
 from . import graph_utils as gutils
 
 AVAILABLE_METRICS = ["sequniq-normwalk", "sequniq-normnode"]
@@ -19,12 +18,12 @@ AVAILABLE_METRICS = ["sequniq-normwalk", "sequniq-normnode"]
 
 def main(
     graph_file: Path,
-    output_file: str,
-    region: str,
-    region_file: str,
-    metrics: str,
-    reference: str,
-    log=logging.Logger,
+    output_file: Path = Path("/dev/stdout"),
+    region_str: str = "",
+    region_file: Path = None,
+    metrics: str = "sequniq-normwalk",
+    reference: str = "GRCh38",
+    log: logging.Logger = None,
 ):
     """
     Compute complexity scores for regions
@@ -40,44 +39,42 @@ def main(
     ----------
     graph_file : Path
         Path to GFA or GBZ file
-    output_file : str
+    output_file : str, optional
         Path to output file
-    region : str
+    region_str : str, optional
         chrom:start-end of region to process
-    region_file : str
+    region_file : Path, optional
         Path to BED file of regions to process
-    metrics : str
+    metrics : str, optional
         Comma-separated list of metrics to compute
-    reference : str
+    reference : str, optional
         Sample ID of reference
-    log : logging.Logger
-        logger object
+    log : logging.Logger, optional
+        Logger object
 
     Returns
     -------
     retcode : int
         Return code of the program
     """
+    if log is None:
+        log = getLogger(name="complexity", level="ERROR")
     start_time = time.time()
 
     #### Check files and indices #####
-    if graph_file == "":
-        log.critical("Must specify a graph file")
-        return 1
-    gfa_file = ""
-    gbz_file = ""
+    file_type = None
     if graph_file.suffix == ".gfa":
-        gfa_file = graph_file
+        # TODO: also handle .gfa.gz
+        file_type = "gfa"
     elif graph_file.suffix == ".gbz":
-        gbz_file = graph_file
+        file_type = "gbz"
+        if not gbz.check_gbzbase_installed(log):
+            return 1
+        if not gbz.check_gbzfile(graph_file, log):
+            return 1
     else:
         log.critical("Invalid graph type. Must be .gbz or .gfa")
         return 1
-    if gbz_file != "":
-        if not gbz.check_gbzbase_installed(log):
-            return 1
-        if not gbz.check_gbzfile(gbz_file, log):
-            return 1
 
     #### Check requested metrics #####
     metrics_list = metrics.split(",")
@@ -89,19 +86,19 @@ def main(
     ##### Set up output file #####
     outf = open(output_file, "w")
     header = []
-    if gbz_file != "":
+    if file_type == "gbz":
         header = ["chrom", "start", "end"]
     header.extend(["numnodes", "total_length", "numwalks"] + metrics_list)
     outf.write("\t".join(header) + "\n")
 
     ##### If GFA, just process the whole graph #####
-    if gfa_file != "":
-        if region != "" or region_file != "":
+    if file_type == "gfa":
+        if region_str != "" or region_file is not None:
             log.warning("Regions are ignored when processing GFA")
         exclude = []
         if reference != "":
             exclude = [reference]
-        node_table = gutils.NodeTable(gfa_file, exclude)
+        node_table = gutils.NodeTable(graph_file, exclude)
         metric_results = []
         for m in metrics_list:
             metric_results.append(compute_complexity(node_table, m))
@@ -114,19 +111,17 @@ def main(
         outf.flush()
         end_time = time.time()
         total_time = end_time - start_time
-        sys.stderr.write(f"Total time: \t{total_time}\n")
+        log.debug(f"Total time: \t{total_time}\n")
         outf.close()
         return 0
 
     #### If GBZ: Set up list of regions to process #####
     regions = []
-    if region != "":
-        regions.append(utils.parse_region_string(region))
-    if region_file != "":
-        if not os.path.exists(region_file):
-            log.critical(f"Could not find {region_file}")
-            return 1
-        regions.extend(utils.parse_regions_file(region_file))
+    if region_str != "":
+        region = Region.read(region_str)
+        regions = Regions((region,), log=log)
+    if region_file is not None:
+        regions = Regions.read(region_file, log=log)
     if len(regions) == 0:
         log.critical("Did not detect any regions")
         return 1
@@ -139,7 +134,7 @@ def main(
             )
         )
         # Load node table for the region
-        node_table = gbz.load_node_table_from_gbz(gbz_file, region, reference)
+        node_table = gbz.load_node_table_from_gbz(graph_file, region, reference)
 
         # Compute each requested complexity metric
         metric_results = []
@@ -162,19 +157,19 @@ def main(
     ##### Cleanup #####
     end_time = time.time()
     time_per_region = (end_time - start_time) / len(regions)
-    sys.stderr.write(f"Time per region\t{time_per_region}\n")
+    log.debug(f"Time per region\t{time_per_region}\n")
     outf.close()
     return 0
 
 
-def compute_complexity(node_table: gutils.NodeTable, metric: str) -> float:
+def compute_complexity(node_table: gutils.NodeTable, metric: str) -> Optional[float]:
     """
     Compute complexity for a node table. Options:
 
     sequniq-normwalk: sum_n  len(n)*p_n*(1-p_n)/L
        where L is the average walk length
 
-    sequniq-normnode: sum_n len(n)*p_n*(1-p_n)/L
+    sequniq-normnode: sum_n  len(n)*p_n*(1-p_n)/L
        where L is the average node length
 
     Parameters
@@ -182,7 +177,7 @@ def compute_complexity(node_table: gutils.NodeTable, metric: str) -> float:
     node_table : graph_utils.NodeTable
        Stores info on lengths/walks through each node
     metric : str
-       Which metric to compute. see description above
+       Which metric to compute. See description above
 
     Returns
     -------
@@ -198,16 +193,15 @@ def compute_complexity(node_table: gutils.NodeTable, metric: str) -> float:
         return None
     complexity = 0
     # Add up value for each node
-    for n in node_table.nodes.keys():
-        if metric == "sequniq-normwalk" or metric == "sequniq-normnode":
+    if metric in ("sequniq-normwalk", "sequniq-normnode"):
+        for n in node_table.nodes.keys():
             length = node_table.nodes[n].length
             p = len(node_table.nodes[n].samples) / node_table.numwalks
             complexity += length * p * (1 - p)
-    # Normalize
-    if metric == "sequniq-normwalk":
-        complexity = complexity / node_table.get_mean_walk_length()
-    elif metric == "sequniq-normnode":
-        complexity = complexity / node_table.get_mean_node_length()
-    else:
-        raise ValueError(f"Invalid metric {metric}")
-    return complexity
+        # Normalize
+        if metric == "sequniq-normwalk":
+            complexity = complexity / node_table.get_mean_walk_length()
+        elif metric == "sequniq-normnode":
+            complexity = complexity / node_table.get_mean_node_length()
+        return complexity
+    raise ValueError(f"Invalid metric {metric}")

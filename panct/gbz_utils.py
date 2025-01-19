@@ -2,17 +2,21 @@
 Utilities for dealing with GBZ files
 """
 
-import logging
 import os
-from shutil import which
-import subprocess
+import logging
 import tempfile
+import subprocess
+from shutil import which
 from pathlib import Path
+from typing import Optional
+
+from .data import Region
 from . import graph_utils as gutils
-from .utils import Region
 
 
-def extract_region_from_gbz(gbz_file: Path, region: Region, reference: str) -> str:
+def extract_region_from_gbz(
+    gbz_file: Path, region: Region, reference: str
+) -> Optional[Path]:
     """
     Extract GFA for a region from an indexed GBZ file
 
@@ -27,7 +31,7 @@ def extract_region_from_gbz(gbz_file: Path, region: Region, reference: str) -> s
 
     Returns
     -------
-    gfa_file : str
+    gfa_file : Path
         Path to GFA file
     """
     tmpfile = tempfile.NamedTemporaryFile(delete=False)
@@ -45,7 +49,7 @@ def extract_region_from_gbz(gbz_file: Path, region: Region, reference: str) -> s
     if proc.returncode != 0:
         return None
     else:
-        return tmpfile.name
+        return Path(tmpfile.name)
 
 
 def check_gbzbase_installed(log: logging.Logger):
