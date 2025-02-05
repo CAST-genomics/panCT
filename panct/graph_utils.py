@@ -3,8 +3,11 @@ Utilities for dealing with node tables
 """
 
 from pathlib import Path
+from collections import Counter
 
 import numpy as np
+
+from .data import Walks
 
 
 class Node:
@@ -193,6 +196,9 @@ class NodeTable:
         return ws.split(":")
 
     def load_from_gfa(self, gfa_file: Path, exclude_samples: list[str] = []):
+        # keep track of smallest and largest node for extracting from .walk file
+        smallest_node, largest_node = -float("inf"), float("inf")
+
         # First parse all the nodes
         with open(gfa_file, "r") as f:
             for line in f:
@@ -211,6 +217,22 @@ class NodeTable:
                 if nodelen == 0:
                     raise ValueError(f"Could not determine node length for {nodeid}")
                 self.add_node(Node(nodeid, length=nodelen))
+                # keep track of the smallest and largest nodes
+                try:
+                    # if the node can't be parsed into an int, then just move on
+                    nodeid = int(nodeid)
+                except:
+                    continue
+                if nodeid < smallest_node:
+                    smallest_node = nodeid
+                elif nodeid > largest_node:
+                    largest_node = nodeid
+
+        # fix smallest and largest node for processing walks
+        if smallest_node == -float("inf"):
+            smallest_node = ""
+        if largest_node == float("inf"):
+            largest_node = ""
 
         # try to find the .walk file
         walk_file = Path("")
@@ -221,20 +243,34 @@ class NodeTable:
         if not walk_file.exists():
             walk_file = walk_file.with_suffix(".walk.gz")
 
-        # TODO: get nodes from .walk file and add with self.add_walk()
-        # if walk_file.exists():
-        # else:
-
-        # Second pass to get the walks
-        with open(gfa_file, "r") as f:
-            for line in f:
-                linetype = line.split()[0]
-                if linetype != "W":
-                    continue
-                sampid = line.split()[1]
-                if sampid in exclude_samples:
-                    continue
-                hapid = line.split()[2]
-                walk = line.split()[6]
-                nodes = self.get_nodes_from_walk(walk)
-                self.add_walk(f"{sampid}:{hapid}", nodes)
+        if walk_file.exists():
+            # Get nodes from .walk file and add with self.add_walk()
+            walks = Walks.read(walk_file, region=f"{smallest_node}-{largest_node}")
+            # TODO: implement exclude_samples
+            walk_lengths = Counter()
+            all_samples = set()
+            for node, node_val in self.nodes.items():
+                node_int = int(node)
+                samples = set(f"{hap[0]}:{hap[1]}" for hap in walks.data[node_int])
+                all_samples.update(samples)
+                node_val.samples.update(samples)
+                for sampid, hapid in walks.data[node_int]:
+                    # how many times did this haplotype pass through this node?
+                    num_times = walks.data[node_int][(sampid, hapid)]
+                    walk_lengths[f"{sampid}:{hapid}"] += node_val.length * num_times
+            self.numwalks += len(all_samples)
+            self.walk_lengths.extend(walk_lengths.values())
+        else:
+            # Second pass over gfa file to get the walks
+            with open(gfa_file, "r") as f:
+                for line in f:
+                    linetype = line.split()[0]
+                    if linetype != "W":
+                        continue
+                    sampid = line.split()[1]
+                    if sampid in exclude_samples:
+                        continue
+                    hapid = line.split()[2]
+                    walk = line.split()[6]
+                    nodes = self.get_nodes_from_walk(walk)
+                    self.add_walk(f"{sampid}:{hapid}", nodes)

@@ -19,13 +19,13 @@ class Walks(Data):
 
     Attributes
     ----------
-    data : dict[str, Counter[tuple[str, int]]]
+    data : dict[int, Counter[tuple[str, int]]]
         A bunch of nodes, stored as a mapping of node IDs to tuples of (sample labels, haplotype ID)
     log: Logger
         A logging instance for recording debug statements.
     """
 
-    def __init__(self, data: dict[str, Counter[tuple[str, int]]], log: Logger = None):
+    def __init__(self, data: dict[int, Counter[tuple[str, int]]], log: Logger = None):
         super().__init__(log=log)
         self.data = data
 
