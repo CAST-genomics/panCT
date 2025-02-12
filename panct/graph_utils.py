@@ -196,9 +196,6 @@ class NodeTable:
         return ws.split(":")
 
     def load_from_gfa(self, gfa_file: Path, exclude_samples: list[str] = []):
-        # keep track of smallest and largest node for extracting from .walk file
-        smallest_node, largest_node = -float("inf"), float("inf")
-
         # First parse all the nodes
         with open(gfa_file, "r") as f:
             for line in f:
@@ -217,22 +214,6 @@ class NodeTable:
                 if nodelen == 0:
                     raise ValueError(f"Could not determine node length for {nodeid}")
                 self.add_node(Node(nodeid, length=nodelen))
-                # keep track of the smallest and largest nodes
-                try:
-                    # if the node can't be parsed into an int, then just move on
-                    nodeid = int(nodeid)
-                except:
-                    continue
-                if nodeid < smallest_node:
-                    smallest_node = nodeid
-                elif nodeid > largest_node:
-                    largest_node = nodeid
-
-        # fix smallest and largest node for processing walks
-        if smallest_node == -float("inf"):
-            smallest_node = ""
-        if largest_node == float("inf"):
-            largest_node = ""
 
         # try to find the .walk file
         walk_file = Path("")
@@ -244,8 +225,21 @@ class NodeTable:
             walk_file = walk_file.with_suffix(".walk.gz")
 
         if walk_file.exists():
+            node_set = set(int(n) for n in self.nodes.keys())
+            # find smallest and largest node for processing walks
+            smallest_node = min(node_set, default="")
+            largest_node = max(node_set, default="")
             # Get nodes from .walk file and add with self.add_walk()
-            walks = Walks.read(walk_file, region=f"{smallest_node}-{largest_node}")
+            walks = Walks.read(
+                walk_file,
+                region=f"{smallest_node}-{largest_node}",
+                nodes=node_set,
+                log=None,  # TODO: pass Logger
+            )
+            # check that all of the nodes were loaded properly
+            # TODO: remove this check? or implement a fail-safe
+            assert len(walks.data) == len(node_set)
+            assert len(node_set) == len(self.nodes)
             # TODO: implement exclude_samples
             walk_lengths = Counter()
             all_samples = set()
