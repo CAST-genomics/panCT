@@ -1,8 +1,9 @@
-import numpy as np
-import os
-from panct.graph_utils import *
 from pathlib import Path
+
 import pytest
+import numpy as np
+
+from panct.graph_utils import Node, NodeTable
 
 DATADIR = Path(__file__).parent.joinpath("data")
 

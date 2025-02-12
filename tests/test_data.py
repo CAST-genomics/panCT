@@ -85,10 +85,19 @@ class TestWalks:
         nodes = Walks.read(DATADIR / "basic.walk.gz", region="-2")
         assert nodes.data == expected.data
 
+        nodes = Walks.read(DATADIR / "basic.walk.gz", region="-2", nodes={1, 2})
+        assert nodes.data == expected.data
+
         del expected.data[2]
 
         nodes = Walks.read(DATADIR / "basic.walk", region="1-1")
         assert nodes.data == expected.data
 
         nodes = Walks.read(DATADIR / "basic.walk.gz", region="1-1")
+        assert nodes.data == expected.data
+
+        nodes = Walks.read(DATADIR / "basic.walk.gz", region="1-2", nodes=set((1,)))
+        assert nodes.data == expected.data
+
+        nodes = Walks.read(DATADIR / "basic.walk.gz", nodes=set((1,)))
         assert nodes.data == expected.data
