@@ -19,8 +19,7 @@ AVAILABLE_METRICS = ["sequniq-normwalk", "sequniq-normnode"]
 def main(
     graph_file: Path,
     output_file: Path = Path("/dev/stdout"),
-    region_str: str = "",
-    region_file: Path = None,
+    region_str: str|Path = None,
     metrics: str = "sequniq-normwalk",
     reference: str = "GRCh38",
     log: logging.Logger = None,
@@ -41,10 +40,8 @@ def main(
         Path to GFA or GBZ file
     output_file : str, optional
         Path to output file
-    region_str : str, optional
-        chrom:start-end of region to process
-    region_file : Path, optional
-        Path to BED file of regions to process
+    region_str : str|Path, optional
+        chrom:start-end of region to process or a BED file of regions
     metrics : str, optional
         Comma-separated list of metrics to compute
     reference : str, optional
@@ -93,7 +90,7 @@ def main(
 
     ##### If GFA, just process the whole graph #####
     if file_type == "gfa":
-        if region_str != "" or region_file is not None:
+        if region_str is not None:
             log.warning("Regions are ignored when processing GFA")
         exclude = []
         if reference != "":
@@ -117,11 +114,12 @@ def main(
 
     #### If GBZ: Set up list of regions to process #####
     regions = []
-    if region_str != "":
-        region = Region.read(region_str)
-        regions = Regions((region,), log=log)
-    if region_file is not None:
-        regions = Regions.read(region_file, log=log)
+    if region_str is not None:
+        if isinstance(region_str, Path):
+            regions = Regions.read(region_file, log=log)
+        else:
+            region = Region.read(region_str)
+            regions = Regions((region,), log=log)
     if len(regions) == 0:
         log.critical("Did not detect any regions")
         return 1

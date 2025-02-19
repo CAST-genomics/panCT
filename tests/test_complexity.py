@@ -20,7 +20,6 @@ def test_complexity_main(tmpdir):
     graph_file = ""
     output_file = ""
     region = ""
-    region_file = ""
     metrics = "sequniq-normwalk,sequniq-normnode"
     reference = ""
     log = getLogger(name="complexity", level="INFO")
@@ -31,7 +30,6 @@ def test_complexity_main(tmpdir):
             graph_file,
             output_file,
             region,
-            region_file,
             metrics,
             reference,
             log,
@@ -47,7 +45,6 @@ def test_complexity_main(tmpdir):
             graph_file,
             output_file,
             region,
-            region_file,
             metrics,
             reference,
             log,
@@ -59,7 +56,6 @@ def test_complexity_main(tmpdir):
             graph_file,
             output_file,
             "chr1:1-2",
-            region_file,
             metrics,
             reference,
             log,
@@ -69,7 +65,7 @@ def test_complexity_main(tmpdir):
 
     # Invalid metric
     assert (
-        main(graph_file, output_file, region, region_file, "xxx", reference, log) == 1
+        main(graph_file, output_file, region, "xxx", reference, log) == 1
     )
 
 

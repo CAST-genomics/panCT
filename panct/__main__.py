@@ -69,17 +69,8 @@ def complexity(
         ),
     ],
     region: Annotated[
-        str, typer.Option("--region", help="Region to compute complexity over")
+        str, typer.Option("--region", help="A region in which to compute complexity, or a BED file of regions")
     ] = "",
-    region_file: Annotated[
-        Path,
-        typer.Option(
-            "--region-file",
-            exists=True,
-            readable=True,
-            help="Bed file of regions to compute complexity over",
-        ),
-    ] = None,
     metrics: Annotated[
         str,
         typer.Option(
@@ -107,8 +98,12 @@ def complexity(
     from .logging import getLogger
 
     log = getLogger(name="complexity", level=verbosity.value)
+    if region == "":
+        region = None
+    elif Path(region).exists():
+        region = Path(region)
     retcode = complexity_main(
-        graph, output_file, region, region_file, metrics, reference, log
+        graph, output_file, region, metrics, reference, log
     )
     if retcode != 0:
         typer.Exit(code=retcode)

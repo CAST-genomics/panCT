@@ -10,7 +10,7 @@ The ``complexity`` command outputs a file with complexity metrics for an entire 
 
 If a GFA file is provided, the whole graph is processed.
 
-If a GBZ file is provided, you must specify a region or list of regions to process.
+If a GBZ file is provided, you must specify a region or list of regions (as a BED file).
 
 Formulas
 ~~~~~~~~
@@ -34,8 +34,7 @@ Usage
 .. code-block:: bash
 
   panct complexity \
-    --region REGION \
-    --region-file PATH \
+    --region REGION or PATH \
     --metrics sequniq-normwalk,sequniq-normnode \
     --reference REFERENCE_ID \
     --out PATH \
