@@ -82,12 +82,12 @@ class NodeTable:
         Get list of nodes from the walk
     """
 
-    def __init__(self, gfa_file: Path = None, exclude_samples: list[str] = []):
+    def __init__(self, gfa_file: Path = None, exclude_samples: list[str] = [], walk_file: Path = None):
         self.nodes = {}  # node ID-> Node
         self.numwalks = 0
         self.walk_lengths = []
         if gfa_file is not None:
-            self.load_from_gfa(gfa_file, exclude_samples)
+            self.load_from_gfa(gfa_file, exclude_samples, walk_file)
 
     def add_node(self, node: Node):
         """
@@ -195,7 +195,7 @@ class NodeTable:
         ws = walk_string.replace(">", ":").replace("<", ":").strip(":")
         return ws.split(":")
 
-    def load_from_gfa(self, gfa_file: Path, exclude_samples: list[str] = []):
+    def load_from_gfa(self, gfa_file: Path, exclude_samples: list[str] = [], walk_file: Path = None):
         # First parse all the nodes
         with open(gfa_file, "r") as f:
             for line in f:
@@ -216,13 +216,13 @@ class NodeTable:
                 self.add_node(Node(nodeid, length=nodelen))
 
         # try to find the .walk file
-        walk_file = Path("")
-        if gfa_file.suffix == ".gz":
-            walk_file = gfa_file.with_suffix("").with_suffix(".walk")
-        else:
-            walk_file = gfa_file.with_suffix("")
-        if not walk_file.exists():
-            walk_file = walk_file.with_suffix(".walk.gz")
+        if walk_file is None:
+            if gfa_file.suffix == ".gz":
+                walk_file = gfa_file.with_suffix("").with_suffix(".walk")
+            else:
+                walk_file = gfa_file.with_suffix(".walk")
+            if not walk_file.exists():
+                walk_file = walk_file.with_suffix(".walk.gz")
 
         if walk_file.exists():
             node_set = set(int(n) for n in self.nodes.keys())
