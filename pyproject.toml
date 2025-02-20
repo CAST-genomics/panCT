@@ -1,24 +1,41 @@
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.poetry]
+[project]
 name = "panCT"
 version = "0.1.0"
 description = "Tool for calculating genomic sequence complexity"
-authors = ["CAST Genomics"]
+authors = [
+    {name = "CAST Genomics"},
+]
 license = "MIT"
-repository = "https://github.com/CAST-genomics/panCT"
-homepage = "https://github.com/CAST-genomics/panCT"
-documentation = "https://panCT.readthedocs.io"
 readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.23.0",
+    "click>=8.0.3",
+    "pysam>=0.22.1",
+    "typer>=0.4.0",
+]
 
 [tool.poetry.dependencies]
-python = ">=3.9"
-typer = ">=0.3.2"
-click = ">=8.0.3"
-numpy = ">=1.23.0"
-pysam = ">=0.22.1"
+numpy = [
+    { version = "1.23.0" , markers = "python_version <= '3.10'" },
+    { version = "2.2.2" , markers = "python_version > '3.10'" },
+]
+click = [
+    { version = "8.0.3" , markers = "python_version <= '3.10'" },
+    { version = "8.1.1" , markers = "python_version > '3.10'" },
+]
+pysam = [
+    { version = "0.22.1" , markers = "python_version <= '3.10'" },
+    { version = "0.23.0" , markers = "python_version > '3.10'" },
+]
+typer = [
+    { version = "0.4.0" , markers = "python_version <= '3.10'" },
+    { version = "0.15.1" , markers = "python_version > '3.10'" },
+]
 
 [tool.poetry.group.docs.dependencies]
 Sphinx = ">=4.3.2"
@@ -26,6 +43,18 @@ sphinx-autodoc-typehints = ">=1.12.0"
 sphinx-rtd-theme = ">=1.0.0"
 numpydoc = ">=1.1.0"
 sphinx-click = ">=3.0.2"
+
+[project.urls]
+repository = "https://github.com/CAST-genomics/panCT"
+homepage = "https://github.com/CAST-genomics/panCT"
+documentation = "https://panCT.readthedocs.io"
+changelog = "https://github.com/CAST-genomics/panct/blob/main/CHANGELOG.md"
+
+[project.scripts]
+panct = "panct.__main__:app"
+
+[tool.poetry]
+requires-poetry = ">=2.0"
 
 [tool.poetry.group.tests.dependencies]
 pytest = ">=7.4.3"
@@ -35,8 +64,10 @@ ipython = ">=7.34.0"
 coverage = {extras = ["toml"], version = ">=7.2.7"}
 filprofiler = ">=2023.3.1"
 
-[tool.poetry.scripts]
-panct = 'panct.__main__:app'
+[tool.poetry.requires-plugins]
+poetry-conda = ">=0.1.4"
+poetry-plugin-export = ">=1.9"
+poetry-plugin-shell = ">=1.0.1"
 
 [tool.black]
 line-length = 88
