@@ -12,6 +12,9 @@ If a GFA file is provided, the whole graph is processed.
 
 If a GBZ file is provided, you must specify a region or list of regions (as a BED file).
 
+..
+  TODO: make a documentation page for the GBZ format and link to it from here
+
 Formulas
 ~~~~~~~~
 The complexity of a region is computed according to the following.
@@ -53,9 +56,21 @@ Usage
 
 Examples
 ~~~~~~~~
+By default, tab-separated output is written to standard out.
 .. code-block:: bash
 
-  panct complexity --out test.tab tests/data/basic.gfa
+  panct complexity tests/data/basic.gfa
+
+If your input graph is in the GBZ format, you may also use the :code:`--region` option to select a specific region of the graph in the coordinates of the reference genome. Eternally, this uses the gbz-base library to first subset the GBZ to a smaller GFA file.
+.. code-block:: bash
+
+  panct complexity --region chrTest:0-1 tests/data/basic.gbz
+
+You may also specify a list of regions as a BED file, instead. In this case, it might also be helpful to write output to a file.
+.. code-block:: bash
+
+  panct complexity --out basic.tsv --region tests/data/basic.bed tests/data/basic.gbz
+
 
 All files used in these examples are described :doc:`here </project_info/example_files>`.
 
@@ -68,13 +83,13 @@ Below are additional examples based on the HPRC .gbz format graph (not included 
 
   # Run on a single region
   panct complexity \
-    --region chr11:119077050-119178859 --out test.tab \
+    --region chr11:119077050-119178859 \
     --metrics sequniq-normwalk,sequniq-normnode \
     hprc-v1.1-mc-grch38.gbz
 
   # Run on a file with a list of regions
   panct complexity \
-    --region regions.bed --out test.tab \
+    --region regions.bed --out test.tsv \
     --metrics sequniq-normwalk,sequniq-normnode \
     hprc-v1.1-mc-grch38.gbz
 

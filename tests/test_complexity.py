@@ -1,12 +1,77 @@
 import os
 from pathlib import Path
+from logging import getLogger
+
 import pytest
+from typer.testing import CliRunner
+
+from panct.__main__ import app
+from panct.graph_utils import Node, NodeTable
+from panct.complexity import main, compute_complexity
+
+runner = CliRunner()
 
 DATADIR = Path(__file__).parent.joinpath("data")
 
-from panct.complexity import *
-from panct.graph_utils import *
-from panct.logging import getLogger
+
+def test_basic_stdout(capfd):
+    """
+    panct complexity tests/data/basic.gfa
+    """
+    in_file = DATADIR / "basic.gfa"
+    expected = """numnodes\ttotal_length\tnumwalks\tsequniq-normwalk
+2\t10\t3\t0.047619047619047616
+"""
+
+    cmd = f"complexity {in_file}"
+    result = runner.invoke(app, cmd.split(" "), catch_exceptions=False)
+    captured = capfd.readouterr()
+    # check that the output is the same as what we expect
+    assert captured.out == expected
+    assert result.exit_code == 0
+
+
+def test_basic_stdout_region(capfd):
+    """
+    panct complexity --region chrTest:0-1 tests/data/basic.gbz
+    """
+    in_file = DATADIR / "basic.gbz"
+    expected = """numnodes\ttotal_length\tnumwalks\tsequniq-normwalk
+2\t10\t3\t0.047619047619047616
+"""
+
+    cmd = f"complexity --region chrTest:0-1 {in_file}"
+    result = runner.invoke(app, cmd.split(" "), catch_exceptions=False)
+    captured = capfd.readouterr()
+    # check that the output is the same as what we expect
+    assert captured.out == expected
+    assert result.exit_code == 0
+
+
+def test_basic_regions_bed(capfd):
+    """
+    panct complexity --out basic.tsv --region tests/data/basic.bed tests/data/basic.gbz
+    """
+    in_file = DATADIR / "basic.gbz"
+    bed_file = DATADIR / "basic.bed"
+    out_file = Path("basic.tsv")
+    if out_file.exists():
+        out_file.unlink()
+    expected = """numnodes\ttotal_length\tnumwalks\tsequniq-normwalk
+2\t10\t3\t0.047619047619047616
+"""
+
+    cmd = f"complexity --out {out_file} --region {bed_file} {in_file}"
+    result = runner.invoke(app, cmd.split(" "), catch_exceptions=False)
+    captured = capfd.readouterr()
+    # check that the output is the same as what we expect
+    with open(out_file, "r") as f:
+        out_file_content = f.read()
+    assert out_file_content == expected
+    assert result.exit_code == 0
+
+    out_file.unlink()
+
 
 # TODO add more tests of main once
 # add gbz dependencies to test
@@ -22,7 +87,7 @@ def test_complexity_main(tmpdir):
     region = ""
     metrics = "sequniq-normwalk,sequniq-normnode"
     reference = ""
-    log = getLogger(name="complexity", level="INFO")
+    log = getLogger()
 
     graph_file = Path("dummy")
     assert (
