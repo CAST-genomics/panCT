@@ -9,7 +9,6 @@ import nox
 from nox_poetry import Session
 from nox_poetry import session
 
-
 package = "panct"
 python_versions = ["3.10", "3.11", "3.12", "3.13"]
 locked_python_version = "3.10"  # keep in sync with dev-env.yml

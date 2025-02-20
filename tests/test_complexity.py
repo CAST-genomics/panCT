@@ -64,9 +64,7 @@ def test_complexity_main(tmpdir):
     )
 
     # Invalid metric
-    assert (
-        main(graph_file, output_file, region, "xxx", reference, log) == 1
-    )
+    assert main(graph_file, output_file, region, "xxx", reference, log) == 1
 
 
 def test_compute_complexity():

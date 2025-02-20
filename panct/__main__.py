@@ -69,7 +69,11 @@ def complexity(
         ),
     ],
     region: Annotated[
-        str, typer.Option("--region", help="A region in which to compute complexity, or a BED file of regions")
+        str,
+        typer.Option(
+            "--region",
+            help="A region in which to compute complexity, or a BED file of regions",
+        ),
     ] = "",
     metrics: Annotated[
         str,
@@ -102,9 +106,7 @@ def complexity(
         region = None
     elif Path(region).exists():
         region = Path(region)
-    retcode = complexity_main(
-        graph, output_file, region, metrics, reference, log
-    )
+    retcode = complexity_main(graph, output_file, region, metrics, reference, log)
     if retcode != 0:
         typer.Exit(code=retcode)
 
