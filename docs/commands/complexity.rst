@@ -41,6 +41,16 @@ Usage
     --verbosity [CRITICAL|ERROR|WARNING|INFO|DEBUG|NOTSET] \
     GFAFILE
 
+.. warning::
+  You must have `gbz-base <https://github.com/jltsiren/gbz-base/tree/main>`_ installed if you are working with GBZ files.
+
+  .. code-block:: bash
+
+    conda install -c conda-forge aryarm::gbz-base
+  ..
+    TODO: Once gbz-base is published on bioconda, we should recommend installing it from there instead.
+  
+
 Examples
 ~~~~~~~~
 .. code-block:: bash
