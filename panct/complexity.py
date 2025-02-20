@@ -116,7 +116,7 @@ def main(
     regions = []
     if region_str is not None:
         if isinstance(region_str, Path):
-            regions = Regions.read(region_file, log=log)
+            regions = Regions.read(region_str, log=log)
         else:
             region = Region.read(region_str)
             regions = Regions((region,), log=log)

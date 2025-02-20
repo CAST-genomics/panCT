@@ -102,11 +102,12 @@ def complexity(
     from .logging import getLogger
 
     log = getLogger(name="complexity", level=verbosity.value)
+    region_str = region
     if region == "":
-        region = None
+        region_str = None
     elif Path(region).exists():
-        region = Path(region)
-    retcode = complexity_main(graph, output_file, region, metrics, reference, log)
+        region_str = Path(region)
+    retcode = complexity_main(graph, output_file, region_str, metrics, reference, log)
     if retcode != 0:
         typer.Exit(code=retcode)
 
