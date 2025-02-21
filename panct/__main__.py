@@ -87,11 +87,11 @@ def complexity(
     reference: Annotated[
         str,
         typer.Option(
-            "--reference", help="The ID of the reference sequence in the GFA file"
+            "-r", "--reference", help="The ID of the reference sequence in the GFA file"
         ),
     ] = "GRCh38",
     output_file: Annotated[
-        Path, typer.Option("--out", help="Name of output file")
+        Path, typer.Option("-o", "--out", help="Name of output file")
     ] = Path("/dev/stdout"),
     verbosity: verbose = Verbosity.info,
 ):
