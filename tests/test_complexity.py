@@ -13,15 +13,45 @@ runner = CliRunner()
 
 DATADIR = Path(__file__).parent.joinpath("data")
 
+expected_basic_output = """numnodes\ttotal_length\tnumwalks\tsequniq-normwalk
+2\t10\t3\t0.047619047619047616
+"""
+
+def prefix_expected_with_region(expected: str, region: list[str]):
+    """
+    Prefix the expected output with chrom, start, and end columns
+
+    Parameters
+    ----------
+    expected: str
+        The expected output without chrom, start, and end columns
+    region: list[str]
+        The region(s) to prefix the expected output with
+
+    Returns
+    -------
+    str
+        The expected output but with the chrom, start, and end columns added at the
+        beginning
+    """
+    assert len(region) == len(expected.split("\n")) - 2
+    region_bed_str = ["\t".join(map(str, i)) + "\t" for i in region]
+    header = expected.split("\n", maxsplit=1)[0]
+    header = "\t".join(("chrom", "start", "end")) + "\t" + header
+    return header + "\n" + "\n".join(
+        s + e for s, e in zip(region_bed_str, filter(
+                lambda e: not e.startswith("numnodes") and e != "",
+                expected.split("\n")
+            )
+        )
+    ) + "\n"
 
 def test_basic_stdout(capfd):
     """
     panct complexity tests/data/basic.gfa
     """
     in_file = DATADIR / "basic.gfa"
-    expected = """numnodes\ttotal_length\tnumwalks\tsequniq-normwalk
-2\t10\t3\t0.047619047619047616
-"""
+    expected = expected_basic_output
 
     cmd = f"complexity {in_file}"
     result = runner.invoke(app, cmd.split(" "), catch_exceptions=False)
@@ -31,17 +61,17 @@ def test_basic_stdout(capfd):
     assert result.exit_code == 0
 
 
-@pytest.mark.xfail()
 def test_basic_stdout_region(capfd):
     """
     panct complexity --region chrTest:0-1 tests/data/basic.gbz
     """
+    region = ("chrTest", 0, 1)
+    region_str = f"{region[0]}:{region[1]}-{region[2]}"
     in_file = DATADIR / "basic.gbz"
-    expected = """numnodes\ttotal_length\tnumwalks\tsequniq-normwalk
-2\t10\t3\t0.047619047619047616
-"""
+    expected = expected_basic_output
+    expected = prefix_expected_with_region(expected, (region,))
 
-    cmd = f"complexity --region chrTest:0-1 {in_file}"
+    cmd = f"complexity --region {region_str} {in_file}"
     result = runner.invoke(app, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()
     # check that the output is the same as what we expect
@@ -49,7 +79,6 @@ def test_basic_stdout_region(capfd):
     assert result.exit_code == 0
 
 
-@pytest.mark.xfail()
 def test_basic_regions_bed(capfd):
     """
     panct complexity --out basic.tsv --region tests/data/basic.bed tests/data/basic.gbz
@@ -59,9 +88,14 @@ def test_basic_regions_bed(capfd):
     out_file = Path("basic.tsv")
     if out_file.exists():
         out_file.unlink()
-    expected = """numnodes\ttotal_length\tnumwalks\tsequniq-normwalk
-2\t10\t3\t0.047619047619047616
-"""
+
+    # create expected output
+    expected = expected_basic_output.split("\n")
+    expected.insert(2, expected[1])
+    expected = "\n".join(expected)
+    expected = prefix_expected_with_region(
+        expected, [("chrTest", 0, 1), ("chrTest", 0, 2)]
+    )
 
     cmd = f"complexity --out {out_file} --region {bed_file} {in_file}"
     result = runner.invoke(app, cmd.split(" "), catch_exceptions=False)
