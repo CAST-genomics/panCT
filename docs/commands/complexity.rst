@@ -54,6 +54,25 @@ Usage
     TODO: Once gbz-base is published on bioconda, we should recommend installing it from there instead.
   
 
+Output
+~~~~~~
+  ..
+    TODO: Describe this output in the formats section of our docs once the output format has stabilized.
+
+The output is a tab-separated file with the following columns:
+
+1. **numnodes**: The number of nodes in the region
+2. **total_length**: The total length of all nodes in the region
+3. **numwalks**: The number of walks in the region
+4. The complexity metrics requested by ``--metrics``. See the :ref:`formulas <formulas>` section for more information.
+
+If the ``--region`` option is specified, there will be one line in the output for every region. Each line will also be prefixed by the following columns:
+
+1. **chrom**: The chromosome of the region
+2. **start**: The start position of the region
+3. **end**: The end position of the region
+
+
 Examples
 ~~~~~~~~
 By default, tab-separated output is written to standard out.
