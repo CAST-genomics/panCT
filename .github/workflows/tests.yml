@@ -33,6 +33,7 @@ jobs:
       - name: Setup Miniforge
         uses: conda-incubator/setup-miniconda@v3
         with:
+          conda-remove-defaults: true
           activate-environment: panct
           auto-activate-base: false
           miniforge-version: latest
