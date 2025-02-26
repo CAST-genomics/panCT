@@ -17,6 +17,7 @@ expected_basic_output = """numnodes\ttotal_length\tnumwalks\tsequniq-normwalk
 2\t10\t3\t0.047619047619047616
 """
 
+
 def prefix_expected_with_region(expected: str, region: list[str]):
     """
     Prefix the expected output with chrom, start, and end columns
@@ -37,14 +38,14 @@ def prefix_expected_with_region(expected: str, region: list[str]):
     assert len(region) == len(expected.split("\n")) - 2
     region_bed_str = ["\t".join(map(str, i)) + "\t" for i in region]
     header = expected.split("\n", maxsplit=1)[0]
-    header = "\t".join(("chrom", "start", "end")) + "\t" + header
-    return header + "\n" + "\n".join(
-        s + e for s, e in zip(region_bed_str, filter(
-                lambda e: not e.startswith("numnodes") and e != "",
-                expected.split("\n")
-            )
-        )
-    ) + "\n"
+    header = "\t".join(("chrom", "start", "end")) + "\t" + header + "\n"
+    non_header = filter(
+        lambda e: not e.startswith("numnodes") and e != "",
+        expected.split("\n"),
+    )
+    non_header = zip(region_bed_str, non_header)
+    return header + "\n".join(s + e for s, e in non_header) + "\n"
+
 
 def test_basic_stdout(capfd):
     """
