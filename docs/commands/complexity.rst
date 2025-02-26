@@ -66,7 +66,7 @@ The output is a tab-separated file with the following columns:
 1. **numnodes**: The number of nodes in the region
 2. **total_length**: The total length of all nodes in the region
 3. **numwalks**: The number of walks in the region
-4. The complexity metrics requested by ``--metrics``. Refer to the :ref:`formulas section <_commands-complexity-formulas>`.
+4. The complexity metrics requested by ``--metrics``. Refer to the :ref:`formulas section <commands-complexity-formulas>`.
 
 If the ``--region`` option is specified, there will be one line in the output for every region. Each line will also be prefixed by the following columns:
 
