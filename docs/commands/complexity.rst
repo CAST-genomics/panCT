@@ -78,16 +78,19 @@ If the ``--region`` option is specified, there will be one line in the output fo
 Examples
 ~~~~~~~~
 By default, tab-separated output is written to standard out.
+
 .. code-block:: bash
 
   panct complexity tests/data/basic.gfa
 
-If your input graph is in the GBZ format, you may also use the :code:`--region` option to select a specific region of the graph in the coordinates of the reference genome. Eternally, this uses the gbz-base library to first subset the GBZ to a smaller GFA file.
+If your input graph is in the GBZ format, you may also use the :code:`--region` option to select a specific region of the graph in the coordinates of the reference genome. Internally, this uses the gbz-base library to first subset the GBZ to a smaller GFA file.
+
 .. code-block:: bash
 
   panct complexity --region chrTest:0-1 tests/data/basic.gbz
 
 You may also specify a list of regions as a BED file, instead. In this case, it might also be helpful to write output to a file.
+
 .. code-block:: bash
 
   panct complexity --out basic.tsv --region tests/data/basic.bed tests/data/basic.gbz
