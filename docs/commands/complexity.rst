@@ -47,7 +47,7 @@ Usage
     GFAFILE
 
 .. warning::
-  You must have `gbz-base <https://github.com/jltsiren/gbz-base/tree/main>`_ installed if you are working with GBZ files.
+  You need an index for the GBZ files, if working with them, or you must have `gbz-base <https://github.com/jltsiren/gbz-base/tree/main>`_ installed.
 
   .. code-block:: bash
 
