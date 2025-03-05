@@ -78,8 +78,10 @@ class Walks(Data):
                         if nodes is not None and node not in nodes:
                             continue
                         final_nodes[node] = Counter(
-                            s for samp in samples
-                            if (s := parse_samp(samp.rsplit(":", 1)))[0] not in exclude_samples
+                            s
+                            for samp in samples
+                            if (s := parse_samp(samp.rsplit(":", 1)))[0]
+                            not in exclude_samples
                         )
                 if (
                     log is not None
@@ -110,7 +112,8 @@ class Walks(Data):
                 ):
                     continue
                 final_nodes[node] = Counter(
-                    s for samp in samples.split("\t")[1:]
+                    s
+                    for samp in samples.split("\t")[1:]
                     if (s := parse_samp(samp.rsplit(":", 1)))[0] not in exclude_samples
                 )
         return cls(final_nodes, log)
