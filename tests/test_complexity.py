@@ -65,7 +65,7 @@ def test_basic_stdout(capfd):
 
 def test_basic_stdout_wo_walk_file(capfd):
     """
-    panct complexity tests/data/basic.gfa
+    panct complexity basic.gfa
     """
     in_file = DATADIR / "basic.gfa"
     tmp_file = Path("basic.gfa")
@@ -98,6 +98,29 @@ def test_basic_stdout_region(capfd):
     # check that the output is the same as what we expect
     assert captured.out == expected
     assert result.exit_code == 0
+
+
+def test_basic_stdout_region_wo_walk_file(capfd):
+    """
+    panct complexity --region chrTest:0-1 basic.gbz
+    """
+    region = ("chrTest", 0, 1)
+    region_str = f"{region[0]}:{region[1]}-{region[2]}"
+    in_file = DATADIR / "basic.gbz"
+    tmp_file = Path("basic.gbz")
+    shutil.copyfile(in_file, tmp_file)
+    expected = expected_basic_output
+    expected = prefix_expected_with_region(expected, (region,))
+
+    cmd = f"complexity --region {region_str} {tmp_file}"
+    result = runner.invoke(app, cmd.split(" "), catch_exceptions=False)
+    captured = capfd.readouterr()
+    # check that the output is the same as what we expect
+    assert captured.out == expected
+    assert result.exit_code == 0
+
+    tmp_file.unlink()
+    tmp_file.with_suffix(".gbz.db").unlink()
 
 
 def test_basic_regions_bed(capfd):
