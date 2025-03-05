@@ -1,4 +1,5 @@
 import os
+import shutil
 from pathlib import Path
 from logging import getLogger
 
@@ -60,6 +61,25 @@ def test_basic_stdout(capfd):
     # check that the output is the same as what we expect
     assert captured.out == expected
     assert result.exit_code == 0
+
+
+def test_basic_stdout_wo_walk_file(capfd):
+    """
+    panct complexity tests/data/basic.gfa
+    """
+    in_file = DATADIR / "basic.gfa"
+    tmp_file = Path("basic.gfa")
+    shutil.copyfile(in_file, tmp_file)
+    expected = expected_basic_output
+
+    cmd = f"complexity {tmp_file}"
+    result = runner.invoke(app, cmd.split(" "), catch_exceptions=False)
+    captured = capfd.readouterr()
+    # check that the output is the same as what we expect
+    assert captured.out == expected
+    assert result.exit_code == 0
+
+    tmp_file.unlink()
 
 
 def test_basic_stdout_region(capfd):
