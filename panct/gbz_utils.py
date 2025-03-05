@@ -145,4 +145,6 @@ def load_node_table_from_gbz(
         walk_file = walk_file.with_suffix(".walk.gz")
     if not walk_file.exists():
         walk_file = None
-    return gutils.NodeTable(gfa_file=gfa_file, exclude_samples=[reference], walk_file=walk_file)
+    return gutils.NodeTable(
+        gfa_file=gfa_file, exclude_samples=[reference], walk_file=walk_file
+    )

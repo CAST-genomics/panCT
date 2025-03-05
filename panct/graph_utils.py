@@ -82,7 +82,12 @@ class NodeTable:
         Get list of nodes from the walk
     """
 
-    def __init__(self, gfa_file: Path = None, exclude_samples: list[str] = [], walk_file: Path = None):
+    def __init__(
+        self,
+        gfa_file: Path = None,
+        exclude_samples: list[str] = [],
+        walk_file: Path = None,
+    ):
         self.nodes = {}  # node ID-> Node
         self.numwalks = 0
         self.walk_lengths = []
@@ -195,7 +200,9 @@ class NodeTable:
         ws = walk_string.replace(">", ":").replace("<", ":").strip(":")
         return ws.split(":")
 
-    def load_from_gfa(self, gfa_file: Path, exclude_samples: list[str] = [], walk_file: Path = None):
+    def load_from_gfa(
+        self, gfa_file: Path, exclude_samples: list[str] = [], walk_file: Path = None
+    ):
         # First parse all the nodes
         with open(gfa_file, "r") as f:
             for line in f:
