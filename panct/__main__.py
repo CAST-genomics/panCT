@@ -69,17 +69,12 @@ def complexity(
         ),
     ],
     region: Annotated[
-        str, typer.Option("--region", help="Region to compute complexity over")
-    ] = "",
-    region_file: Annotated[
-        Path,
+        str,
         typer.Option(
-            "--region-file",
-            exists=True,
-            readable=True,
-            help="Bed file of regions to compute complexity over",
+            "--region",
+            help="A region in which to compute complexity, or a BED file of regions",
         ),
-    ] = None,
+    ] = "",
     metrics: Annotated[
         str,
         typer.Option(
@@ -92,11 +87,11 @@ def complexity(
     reference: Annotated[
         str,
         typer.Option(
-            "--reference", help="The ID of the reference sequence in the GFA file"
+            "-r", "--reference", help="The ID of the reference sequence in the GFA file"
         ),
     ] = "GRCh38",
     output_file: Annotated[
-        Path, typer.Option("--out", help="Name of output file")
+        Path, typer.Option("-o", "--out", help="Name of output file")
     ] = Path("/dev/stdout"),
     verbosity: verbose = Verbosity.info,
 ):
@@ -107,9 +102,12 @@ def complexity(
     from .logging import getLogger
 
     log = getLogger(name="complexity", level=verbosity.value)
-    retcode = complexity_main(
-        graph, output_file, region, region_file, metrics, reference, log
-    )
+    region_str = region
+    if region == "":
+        region_str = None
+    elif Path(region).exists():
+        region_str = Path(region)
+    retcode = complexity_main(graph, output_file, region_str, metrics, reference, log)
     if retcode != 0:
         typer.Exit(code=retcode)
 

@@ -10,7 +10,12 @@ The ``complexity`` command outputs a file with complexity metrics for an entire 
 
 If a GFA file is provided, the whole graph is processed.
 
-If a GBZ file is provided, you must specify a region or list of regions to process.
+If a GBZ file is provided, you must specify a region or list of regions (as a BED file).
+
+..
+  TODO: make a documentation page for the GBZ format and link to it from here
+
+.. _commands-complexity-formulas:
 
 Formulas
 ~~~~~~~~
@@ -34,19 +39,62 @@ Usage
 .. code-block:: bash
 
   panct complexity \
-    --region REGION \
-    --region-file PATH \
+    --region REGION or PATH \
     --metrics sequniq-normwalk,sequniq-normnode \
     --reference REFERENCE_ID \
     --out PATH \
     --verbosity [CRITICAL|ERROR|WARNING|INFO|DEBUG|NOTSET] \
     GFAFILE
 
+.. warning::
+  You need an index for the GBZ files, if working with them, or you must have `gbz-base <https://github.com/jltsiren/gbz-base/tree/main>`_ installed.
+
+  .. code-block:: bash
+
+    conda install -c conda-forge aryarm::gbz-base
+  ..
+    TODO: Once gbz-base is published on bioconda, we should recommend installing it from there instead.
+  
+
+Output
+~~~~~~
+  ..
+    TODO: Describe this output in the formats section of our docs once the output format has stabilized.
+
+The output is a tab-separated file with the following columns:
+
+1. **numnodes**: The number of nodes in the region
+2. **total_length**: The total length of all nodes in the region
+3. **numwalks**: The number of walks in the region
+4. The complexity metrics requested by ``--metrics``. Refer to the :ref:`formulas section <commands-complexity-formulas>`.
+
+If the ``--region`` option is specified, there will be one line in the output for every region. Each line will also be prefixed by the following columns:
+
+1. **chrom**: The chromosome of the region
+2. **start**: The start position of the region
+3. **end**: The end position of the region
+
+
 Examples
 ~~~~~~~~
+By default, tab-separated output is written to standard out.
+
 .. code-block:: bash
 
-  panct complexity --out test.tab tests/data/basic.gfa
+  panct complexity tests/data/basic.gfa
+
+If your input graph is in the GBZ format, you may also use the :code:`--region` option to select a specific region of the graph in the coordinates of the reference genome. Internally, this uses the gbz-base library to first subset the GBZ to a smaller GFA file.
+
+.. code-block:: bash
+
+  panct complexity --region chrTest:0-1 tests/data/basic.gbz
+
+You may also specify a list of regions as a BED file, instead. In this case, it might also be helpful to write output to a file.
+
+.. code-block:: bash
+
+  panct complexity --out basic.tsv --region tests/data/basic.bed tests/data/basic.gbz
+
 
 All files used in these examples are described :doc:`here </project_info/example_files>`.
 
@@ -59,13 +107,13 @@ Below are additional examples based on the HPRC .gbz format graph (not included 
 
   # Run on a single region
   panct complexity \
-    --region chr11:119077050-119178859 --out test.tab \
+    --region chr11:119077050-119178859 \
     --metrics sequniq-normwalk,sequniq-normnode \
     hprc-v1.1-mc-grch38.gbz
 
   # Run on a file with a list of regions
   panct complexity \
-    --region regions.bed --out test.tab \
+    --region regions.bed --out test.tsv \
     --metrics sequniq-normwalk,sequniq-normnode \
     hprc-v1.1-mc-grch38.gbz
 

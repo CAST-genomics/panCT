@@ -1,14 +1,14 @@
 import os
-from panct.gbz_utils import *
 from pathlib import Path
-import pytest
-from panct.logging import getLogger
+from logging import getLogger
+
+from panct.gbz_utils import check_gbzfile
 
 DATADIR = Path(__file__).parent.joinpath("data")
 
 
 def test_check_gbzfile():
-    log = getLogger(name="complexity", level="INFO")
+    log = getLogger()
 
     # Non-existing file
     assert not check_gbzfile(Path("/path/to/bad/file"), log)

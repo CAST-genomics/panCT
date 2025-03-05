@@ -39,3 +39,7 @@ Can't wait for us to tag and release our most recent updates? You can install ``
 .. code-block:: bash
 
    pip install --upgrade --force-reinstall git+https://github.com/cast-genomics/panct.git
+
+Development installation
+------------------------
+If you would like to edit and work with the panCT source code, please refer to :ref:`these instructions <dev-setup-instructions>` for installation.
