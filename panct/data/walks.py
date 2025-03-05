@@ -38,6 +38,7 @@ class Walks(Data):
         fname: Path | str,
         region: str = None,
         nodes: set[int] = None,
+        exclude_samples: set[str] = set(),
         log: Logger = None,
     ) -> Walks:
         """
@@ -52,6 +53,8 @@ class Walks(Data):
             of f'{start}-{end}'
         nodes: set[int], optional
             A subset of nodes to load. Defaults to all nodes.
+        exclude_samples: set[str], optional
+            If specifieed, we will not load these samples
         log: Logger, optional
             A Logger object to use for debugging statements
 
@@ -75,7 +78,8 @@ class Walks(Data):
                         if nodes is not None and node not in nodes:
                             continue
                         final_nodes[node] = Counter(
-                            parse_samp(samp.rsplit(":", 1)) for samp in samples
+                            s for samp in samples
+                            if (s := parse_samp(samp.rsplit(":", 1)))[0] not in exclude_samples
                         )
                 if (
                     log is not None
@@ -106,6 +110,7 @@ class Walks(Data):
                 ):
                     continue
                 final_nodes[node] = Counter(
-                    parse_samp(samp.rsplit(":", 1)) for samp in samples.split("\t")[1:]
+                    s for samp in samples.split("\t")[1:]
+                    if (s := parse_samp(samp.rsplit(":", 1)))[0] not in exclude_samples
                 )
         return cls(final_nodes, log)
