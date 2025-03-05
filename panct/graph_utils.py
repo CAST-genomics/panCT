@@ -85,7 +85,7 @@ class NodeTable:
     def __init__(
         self,
         gfa_file: Path = None,
-        exclude_samples: list[str] = [],
+        exclude_samples: set[str] = set(),
         walk_file: Path = None,
     ):
         self.nodes = {}  # node ID-> Node
@@ -201,8 +201,20 @@ class NodeTable:
         return ws.split(":")
 
     def load_from_gfa(
-        self, gfa_file: Path, exclude_samples: list[str] = [], walk_file: Path = None
+        self, gfa_file: Path, exclude_samples: set[str] = set(), walk_file: Path = None
     ):
+        """
+        Load a NodeTable from a GFA file
+
+        Parameters
+        ----------
+        gfa_file : Path
+            Path to the GFA file
+        exclude_samples : set[str], optional
+            List of samples to exclude
+        walk_file : Path, optional
+            Path to the .walk file
+        """
         # First parse all the nodes
         with open(gfa_file, "r") as f:
             for line in f:
@@ -241,13 +253,13 @@ class NodeTable:
                 walk_file,
                 region=f"{smallest_node}-{largest_node}",
                 nodes=node_set,
+                exclude_samples=exclude_samples,
                 log=None,  # TODO: pass Logger
             )
             # check that all of the nodes were loaded properly
             # TODO: remove this check? or implement a fail-safe
             assert len(walks.data) == len(node_set)
             assert len(node_set) == len(self.nodes)
-            # TODO: implement exclude_samples
             walk_lengths = Counter()
             all_samples = set()
             for node, node_val in self.nodes.items():
