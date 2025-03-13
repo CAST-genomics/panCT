@@ -1,10 +1,12 @@
 """
 Utilities for dealing with node tables
 """
-
 from pathlib import Path
+from logging import Logger
 
 import numpy as np
+
+from .logging import getLogger
 
 
 class Node:
@@ -57,6 +59,8 @@ class NodeTable:
         Number of walks going through this region
     walk_lengths : list[int]
         List of lengths of walks through this region
+    log : Logger
+        A logging instance for recording debug statements
 
     Methods
     -------
@@ -79,10 +83,16 @@ class NodeTable:
         Get list of nodes from the walk
     """
 
-    def __init__(self, gfa_file: Path = None, exclude_samples: list[str] = []):
+    def __init__(
+        self,
+        gfa_file: Path = None,
+        exclude_samples: list[str] = [],
+        log: Logger = None,
+    ):
         self.nodes = {}  # node ID-> Node
         self.numwalks = 0
         self.walk_lengths = []
+        self.log = log or getLogger(self.__class__.__name__)
         if gfa_file is not None:
             self.load_from_gfa(gfa_file, exclude_samples)
 
@@ -193,7 +203,7 @@ class NodeTable:
         return ws.split(":")
 
     def load_from_gfa(self, gfa_file: Path, exclude_samples: list[str] = []):
-        # First parse all the nodes
+        self.log.debug("Parsing nodes from GFA")
         with open(gfa_file, "r") as f:
             for line in f:
                 linetype = line.split()[0]
@@ -225,7 +235,7 @@ class NodeTable:
         # if walk_file.exists():
         # else:
 
-        # Second pass to get the walks
+        self.log.debug("Retrieving walks from GFA")
         with open(gfa_file, "r") as f:
             for line in f:
                 linetype = line.split()[0]

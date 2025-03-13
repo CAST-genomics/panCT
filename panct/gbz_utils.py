@@ -118,7 +118,7 @@ def check_gbzfile(gbz_file: Path, log: logging.Logger):
 
 
 def load_node_table_from_gbz(
-    gbz_file: Path, region: Region, reference: str
+    gbz_file: Path, region: Region, reference: str, log: Logger = None
 ) -> gutils.NodeTable:
     """
     Load a NodeTable for a certain region from a GBZ file
@@ -131,13 +131,16 @@ def load_node_table_from_gbz(
         Region to load
     reference : str
         ID of reference sequence
+    log: Logger
+        A logging instance for recording debug statements
 
     Returns
     -------
     node_table : NodeTable
         NodeTable oject for the region
     """
+    log.debug("Extracting gfa from gbz")
     gfa_file = extract_region_from_gbz(gbz_file, region, reference)
     if gfa_file is None:
-        return gutils.NodeTable()
-    return gutils.NodeTable(gfa_file=gfa_file, exclude_samples=[reference])
+        return gutils.NodeTable(log=log)
+    return gutils.NodeTable(gfa_file=gfa_file, exclude_samples=[reference], log=log)

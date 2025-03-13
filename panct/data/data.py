@@ -17,7 +17,7 @@ class Data(ABC):
     data : np.array
         The contents of the data file, once loaded
     log: Logger
-        A logging instance for recording debug statements.
+        A logging instance for recording debug statements
     """
 
     def __init__(self, log: Logger = None):

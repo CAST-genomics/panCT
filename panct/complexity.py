@@ -56,6 +56,7 @@ def main(
     """
     if log is None:
         log = getLogger(name="complexity", level="ERROR")
+    log.debug("Parsing parameters")
     start_time = time.time()
 
     #### Check files and indices #####
@@ -95,8 +96,9 @@ def main(
         exclude = []
         if reference != "":
             exclude = [reference]
-        node_table = gutils.NodeTable(graph_file, exclude)
+        node_table = gutils.NodeTable(graph_file, exclude, log=log)
         metric_results = []
+        log.debug("Computing metrics")
         for m in metrics_list:
             metric_results.append(compute_complexity(node_table, m))
         items = [
@@ -104,6 +106,7 @@ def main(
             node_table.get_total_node_length(),
             node_table.numwalks,
         ] + metric_results
+        log.debug("Writing output")
         outf.write("\t".join([str(item) for item in items]) + "\n")
         outf.flush()
         end_time = time.time()
@@ -132,8 +135,9 @@ def main(
             )
         )
         # Load node table for the region
-        node_table = gbz.load_node_table_from_gbz(graph_file, region, reference)
+        node_table = gbz.load_node_table_from_gbz(graph_file, region, reference, log=log)
 
+        log.debug("Computing metrics")
         # Compute each requested complexity metric
         metric_results = []
         for m in metrics_list:
