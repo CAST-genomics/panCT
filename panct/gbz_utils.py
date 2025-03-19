@@ -118,7 +118,7 @@ def check_gbzfile(gbz_file: Path, log: logging.Logger):
 
 
 def load_node_table_from_gbz(
-    gbz_file: Path, region: Region, reference: str, log: Logger = None
+    gbz_file: Path, region: Region, reference: str, log: logging.Logger = None
 ) -> gutils.NodeTable:
     """
     Load a NodeTable for a certain region from a GBZ file
