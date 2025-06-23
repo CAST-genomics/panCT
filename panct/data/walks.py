@@ -19,13 +19,13 @@ class Walks(Data):
 
     Attributes
     ----------
-    data : dict[str, Counter[tuple[str, int]]]
+    data : dict[int, Counter[tuple[str, int]]]
         A bunch of nodes, stored as a mapping of node IDs to tuples of (sample labels, haplotype ID)
     log: Logger
         A logging instance for recording debug statements.
     """
 
-    def __init__(self, data: dict[str, Counter[tuple[str, int]]], log: Logger = None):
+    def __init__(self, data: dict[int, Counter[tuple[str, int]]], log: Logger = None):
         super().__init__(log=log)
         self.data = data
 
@@ -34,7 +34,12 @@ class Walks(Data):
 
     @classmethod
     def read(
-        cls: Type[Walks], fname: Path | str, region: str = None, log: Logger = None
+        cls: Type[Walks],
+        fname: Path | str,
+        region: str = None,
+        nodes: set[int] = None,
+        exclude_samples: set[str] = set(),
+        log: Logger = None,
     ) -> Walks:
         """
         Extract walks from a .walk file
@@ -46,6 +51,10 @@ class Walks(Data):
         region: str, optional
             A region string denoting the start and end node IDs in the form
             of f'{start}-{end}'
+        nodes: set[int], optional
+            A subset of nodes to load. Defaults to all nodes.
+        exclude_samples: set[str], optional
+            If specifieed, we will not load these samples
         log: Logger, optional
             A Logger object to use for debugging statements
 
@@ -54,7 +63,7 @@ class Walks(Data):
         Walks
             A Walks object loaded with a bunch of Node objects
         """
-        nodes = {}
+        final_nodes = {}
         parse_samp = lambda samp: (samp[0], int(samp[1]))
         # Try to read the file with tabix
         if Path(fname).suffix == ".gz" and region is not None:
@@ -66,11 +75,21 @@ class Walks(Data):
                     for line in f.fetch(region=region_str):
                         samples = line.strip().split("\t")
                         node = int(samples.pop(0))
-
-                        nodes[node] = Counter(
-                            parse_samp(samp.rsplit(":", 1)) for samp in samples
+                        if nodes is not None and node not in nodes:
+                            continue
+                        final_nodes[node] = Counter(
+                            s
+                            for samp in samples
+                            if (s := parse_samp(samp.rsplit(":", 1)))[0]
+                            not in exclude_samples
                         )
-                return cls(nodes, log)
+                if (
+                    log is not None
+                    and nodes is not None
+                    and len(final_nodes) < len(nodes)
+                ):
+                    log.warning("Couldn't load all requested nodes")
+                return cls(final_nodes, log)
             except ValueError:
                 pass
         # If we couldn't parse with tabix, then fall back to slow loading
@@ -88,9 +107,13 @@ class Walks(Data):
             for line in f:
                 samples = str(line.strip())
                 node = int(samples.split("\t", maxsplit=1)[0])
-                if node < start or node > end:
+                if (node < start or node > end) or (
+                    nodes is not None and node not in nodes
+                ):
                     continue
-                nodes[node] = Counter(
-                    parse_samp(samp.rsplit(":", 1)) for samp in samples.split("\t")[1:]
+                final_nodes[node] = Counter(
+                    s
+                    for samp in samples.split("\t")[1:]
+                    if (s := parse_samp(samp.rsplit(":", 1)))[0] not in exclude_samples
                 )
-        return cls(nodes, log)
+        return cls(final_nodes, log)
