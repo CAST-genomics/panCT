@@ -10,3 +10,5 @@ panct is a collection of tools for working pangenomes
 Homepage: [https://panct.readthedocs.io/](https://panct.readthedocs.io/)
 
 Visit our homepage for installation and usage instructions.
+
+Precomputed region-level complexity scores (at 50kb, 100kb, and 1Mb) resolution for hg38 are available in [precomputed-scores](./precomputed-scores).
