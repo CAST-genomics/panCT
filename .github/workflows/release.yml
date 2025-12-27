@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   release:
@@ -17,14 +18,14 @@ jobs:
         with:
           release-type: python
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
         if: ${{ steps.release.outputs.release_created }}
         with:
           fetch-depth: 2
 
       - name: Set up Python
         if: ${{ steps.release.outputs.release_created }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: '3.10' # keep synced with dev-env.yml
 
@@ -37,7 +38,7 @@ jobs:
       - name: Install Poetry
         if: ${{ steps.release.outputs.release_created }}
         run: |
-          pip install 'poetry==2.1.0'  # keep version synced with dev-env.yml
+          pip install 'poetry==2.2.1'  # keep version synced with dev-env.yml
           poetry --version
 
       - name: Bump version for developmental release
@@ -74,9 +75,10 @@ jobs:
           path: dist
 
       - name: Publish package on TestPyPI
-        uses: pypa/gh-action-pypi-publish@v1.8.14
+        uses: pypa/gh-action-pypi-publish@release/v1
+        if: github.ref != 'refs/heads/main'
         with:
           repository-url: https://test.pypi.org/legacy/
 
       - name: Publish package on PyPI
-        uses: pypa/gh-action-pypi-publish@v1.8.14
+        uses: pypa/gh-action-pypi-publish@release/v1
