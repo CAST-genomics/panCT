@@ -118,10 +118,41 @@ def check_gbzfile(gbz_file: Path, log: logging.Logger):
 
 
 def load_node_table_from_gbz(
-    gbz_file: Path, region: Region, reference: str
+    gbz_file: Path, region: Region, reference: str, exclude_samples=[], walk_file=None
 ) -> gutils.NodeTable:
     """
     Load a NodeTable for a certain region from a GBZ file
+
+    Parameters
+    ----------
+    gbz_file : Path
+        Path to GBZ file
+    region : Region
+        Region to load
+    reference : str
+        ID of reference sequence
+    exclude_samples: set
+        Set of samples to exclude from analysis.
+        For complexity and pop. uniq., default {'CHM13', 'GRCh38'}
+
+    Returns
+    -------
+    node_table : NodeTable
+        NodeTable oject for the region
+    """
+    gfa_file = extract_region_from_gbz(gbz_file, region, reference)
+    if gfa_file is None:
+        return gutils.NodeTable()
+    return gutils.NodeTable(gfa_file=gfa_file, exclude_samples=exclude_samples,walk_file=walk_file)
+
+
+def load_link_table_from_gbz(
+    gbz_file: Path, region: Region, reference: str, exclude_samples=[], walk_file=None
+) -> gutils.LinkTable:
+#) -> gutils.LinkTable:
+
+    """
+    Load a LinkTable for a certain region from a GBZ file
 
     Parameters
     ----------
@@ -139,5 +170,34 @@ def load_node_table_from_gbz(
     """
     gfa_file = extract_region_from_gbz(gbz_file, region, reference)
     if gfa_file is None:
-        return gutils.NodeTable()
-    return gutils.NodeTable(gfa_file=gfa_file, exclude_samples=[reference])
+         return gutils.LinkTable()
+
+    return gutils.LinkTable(gfa_file=gfa_file, exclude_samples=exclude_samples,walk_file=walk_file)
+
+def load_walk_table_from_gbz(
+    gbz_file: Path, region: Region, reference: str
+) -> gutils.WalkTable:
+#) -> gutils.WalkTable:
+
+    """
+    Load a WalkTable for a certain region from a GBZ file
+
+    Parameters
+    ----------
+    gbz_file : Path
+        Path to GBZ file
+    region : Region
+        Region to load
+    reference : str
+        ID of reference sequence
+
+    Returns
+    -------
+    node_table : NodeTable
+        NodeTable oject for the region
+    """
+    gfa_file = extract_region_from_gbz(gbz_file, region, reference)
+    if gfa_file is None:
+         return gutils.WalkTable()
+
+    return gutils.WalkTable(gfa_file=gfa_file, exclude_samples=exclude_samples,walk_file=walk_file)
