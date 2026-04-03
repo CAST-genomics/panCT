@@ -27,6 +27,9 @@
 			],
 			"settings": {
 				"python.analysis.typeCheckingMode": "strict",
+				// "python.analysis.exclude": [
+				// 	"**/.vscode-remote/**"
+				// ],
 				"python.condaPath": "/opt/conda/condabin/conda",
 				"python.terminal.activateEnvironment": true,
 				"python.terminal.activateEnvInCurrentTerminal": true,

@@ -92,9 +92,9 @@ def main(
     if file_type == "gfa":
         if region_str is not None:
             log.warning("Regions are ignored when processing GFA")
-        exclude = []
+        exclude = set()
         if reference != "":
-            exclude = [reference]
+            exclude.add(reference)
         node_table = gutils.NodeTable(graph_file, exclude)
         metric_results = []
         for m in metrics_list:
