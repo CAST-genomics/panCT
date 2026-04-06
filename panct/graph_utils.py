@@ -359,7 +359,7 @@ class NodeTable:
                 self.sample_labels=True
                 for node in self.nodes:
                     if node in walks.data:
-                        self.nodes[node].samples=list(walks.data[node])
+                        self.nodes[node].samples=list(set(walks.data[node]))
                         #assign walks to nodes
                 walk_dict = defaultdict(list) #make a dictionary of walk:nodes
                 for node, values in walks.data.items():
