@@ -15,7 +15,7 @@ from . import gbz_utils as gbz
 from .data import Region, Regions
 from . import graph_utils as gutils
 
-AVAILABLE_METRICS = ['sequniq-normwalk', 'sequniq-normnode','raw-percentage','sequniq-unnorm','sequniq-normdegree','sequniq-norm_meanwalk']
+AVAILABLE_METRICS = ['sequniq-normwalk', 'sequniq-normnode','raw-percentage','sequniq-unnorm','sequniq-normdegree']
 
 
 def main(
@@ -47,7 +47,9 @@ def main(
     region_str : str|Path, optional
         chrom:start-end of region to process or a BED file of regions
     metrics : str, optional
-        Comma-separated list of metrics to compute
+        Comma-separated list of metrics to compute 
+        sequniq-normwalk, sequniq-normnode, sequniq-normdegree: intended for computing complexity
+        raw-percentage, sequniq-unnorm: intended for QC and debugging
     reference : str, optional
         Sample ID of reference
     walk_file : Path, optional
@@ -223,21 +225,12 @@ def compute_complexity(node_table: gutils.NodeTable,link_table: gutils.LinkTable
         return None
     complexity = 0
     # Add up value for each node
-    if metric in ('sequniq-normwalk', 'sequniq-normnode','raw-percentage','sequniq-unnorm','sequniq-normdegree','sequniq-norm_meanwalk'):
+    if metric in ('sequniq-normwalk', 'sequniq-normnode','raw-percentage','sequniq-unnorm','sequniq-normdegree'):
         for n in node_table.nodes.keys():
             length = node_table.nodes[n].length
             p = len(node_table.nodes[n].samples) / node_table.numwalks
             if(metric=='raw-percentage'):
                 complexity += p * (1 - p)
-            elif(metric=='sequniq-norm_meanwalk'):
-                l=0
-                for x in node_table.nodes[n].samples:
-                    l+=node_table.walk_lengths[node_table.walk_ids.index(x)]
-                if len(node_table.nodes[n].samples)==0:
-                    complexity=np.nan
-                else:
-                    l=l/len(node_table.nodes[n].samples)
-                    complexity = l * p * (1 - p)
             elif(metric=='sequniq-normdegree'):
                 degree=0
                 for l in link_table.links.keys():
@@ -247,7 +240,7 @@ def compute_complexity(node_table: gutils.NodeTable,link_table: gutils.LinkTable
             else:
                 complexity += length * p * (1 - p)
         # Normalize
-        if metric in ["sequniq-normwalk", 'sequniq-norm_meanwalk']:
+        if metric == "sequniq-normwalk":
             complexity = complexity / node_table.get_mean_walk_length()
         elif metric == "sequniq-normnode":
             complexity = complexity / node_table.get_mean_node_length()

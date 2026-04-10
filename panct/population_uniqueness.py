@@ -18,7 +18,7 @@ from . import gbz_utils as gbz
 from .data import Region, Regions
 from . import graph_utils as gutils
 
-AVAILABLE_METRICS = ['popuniq-normwalk', 'popuniq-normnode']
+AVAILABLE_METRICS = ['popuniq-normwalk', 'popuniq-normnode','popuniq-normdegree']
 
 def main(
     graph_file: Path,
@@ -51,6 +51,7 @@ def main(
         chrom:start-end of region to process or a BED file of regions
     metrics : str, optional
         Comma-separated list of metrics to compute.
+        options: popuniq-normwalk, popuniq-normnode, popuniq-normdegree
     reference : str, optional
         Sample ID of reference
     walk_file : Path
@@ -106,15 +107,19 @@ def main(
             return 1
     #### Import assemblies file #####
     assemblies=pd.read_csv(assemblies_file,sep='\t',usecols=['Sample ID','Haplotype','Population Abbreviation'])
-    #make filter an optional list of assemblies to remove.
+    
+    # assumes 'GRCh38','CHM13' if called from command line.
     exclude_samples=exclude_samples.split(',')
     log.info(f'Filtering out the following samples: {exclude_samples}.'
              "['GRCh38','CHM13', 'HG00272', 'HG03492'] recommended for pangenome v2.0")
+    #TODO: make recommended exclusion list for v1
     #['GRCh38','CHM13', 'HG00272', 'HG03492'] for v 2
     assemblies=assemblies[~assemblies['Sample ID'].isin(exclude_samples)]
+    
     #dictionary of sample sizes for each population
     asm_count=Counter(assemblies.drop_duplicates()['Population Abbreviation'])
     asm_count['total']=sum(asm_count.values())
+    
     #dictionary of sample ID to population
     asm=assemblies[['Sample ID','Population Abbreviation']].drop_duplicates()
     asm.index=asm['Sample ID']
@@ -127,7 +132,8 @@ def main(
     if file_type == "gbz":
         header = ["chrom", "start", "end"]
     #
-    header.extend(["numnodes","total_length", "numwalks"] + sorted([f'{metric}_{x}' for metric in metrics_list for x in set(asm.values())]))
+    header.extend(["numnodes","total_length", "numwalks"] + sorted([f'{metric}_{x}' for metric in metrics_list for x in list(set(asm.values()))+['total']]))
+    #add mean degree?
     outf.write("\t".join(header) + "\n")
 
 
@@ -140,9 +146,12 @@ def main(
         if reference != "":
             exclude = [reference]
         node_table = gutils.NodeTable(graph_file, exclude,walk_file)
+        #do we need to exclude walks from link file? things to consider...
+        link_table=gutils.LinkTable(graph_file,reference)
+
         metric_results = []
         for m in metrics_list:
-            metric_results.extend(compute_population_uniqueness(node_table, asm, m))
+            metric_results.extend(compute_population_uniqueness(node_table, link_table, asm, asm_count, m, exclude_samples))
 
         items = [
             len(node_table.nodes.keys()),
@@ -180,10 +189,16 @@ def main(
         
         node_table = gbz.load_node_table_from_gbz(graph_file, region, reference, exclude_samples, walk_file)
         
+        if (node_table.gfa_file!=None):
+            link_table=gutils.LinkTable(node_table.gfa_file,reference)
+        else:
+            log.info('Node table does not contain gfa file, using gbz file for link table.')
+            link_table = gbz.load_link_table_from_gbz(graph_file, region, reference, exclude_samples, walk_file)
+
         metric_results = []
         log.info('computing population specific sequence uniqueness')
         for m in metrics_list:
-            metric_results.extend(compute_population_uniqueness(node_table, asm, asm_count, m,exclude_samples))
+            metric_results.extend(compute_population_uniqueness(node_table, link_table, asm, asm_count, m, exclude_samples))
         
         items = (
             [region.chrom, region.start, region.end]
@@ -222,16 +237,19 @@ def calc_exp_het(asm_count,anc):
         exp_het[k]=2*p*q
     return(exp_het) 
 
-def compute_population_uniqueness(node_table: gutils.NodeTable, asm,asm_count, metric:str,exclude_samples=[]):
+def compute_population_uniqueness(node_table: gutils.NodeTable, link_table: gutils.LinkTable, asm, asm_count, metric:str,exclude_samples=['GRCh38','CHM13']):
     """
     Compute population specific uniqueness for a node table. Options:
     popuniq-normwalk
     popuniq-normnode
+    popuniq-normdegree
     
     Parameters
     ----------
     node_table : graph_utils.NodeTable
        Stores info on lengths/walks through each node
+    link_table : graph_utils.LinkTable
+        Stores info on the links within the pangenome region
     asm: dict
         dictionary that maps sample ID to population. Based on assemblies file.
     asm_count: dict
@@ -243,7 +261,7 @@ def compute_population_uniqueness(node_table: gutils.NodeTable, asm,asm_count, m
     Returns
     -------
     complexity : float
-       Complexity score
+       List of population uniqueness scores, with 1 score per population, as well as a total score. Total score calculated using mean Hs for all populations.
 
     Raises
     ------
@@ -252,43 +270,62 @@ def compute_population_uniqueness(node_table: gutils.NodeTable, asm,asm_count, m
     
     """
     complexity=dict()
-    if metric in ('popuniq-normwalk', 'popuniq-normnode'):
-        complexity=dict.fromkeys(sorted([f'{metric}_{x}' for x in set(asm.values())]), 0)
+    populations=sorted(list(asm_count.keys()))+['total']
+    #TOTAL HAS TO BE LAST- it is calculated on last loop of populations as an average of the previous values.
+    if metric in ('popuniq-normwalk', 'popuniq-normnode','popuniq-normdegree'):
+        complexity=dict.fromkeys([f'{metric}_{x}' for x in populations], 0)
         for n in node_table.nodes.keys():
             #get list of samples present for node
             pops = []
             pops.extend(
                 asm[s.split('.')[0]]
                 for s in node_table.nodes[n].samples
-                if not filter or s.split('.')[0] not in exclude_samples)            
+                if s.split('.')[0] not in exclude_samples)
+                #list of populations present for node- take the population value from the node to pop dict
+            
             #get dictionary of population instances
             anc_count = Counter(pops)
             anc_count = {key: anc_count.get(key, 0) for key in asm.values()}
+            #count instances into dictionary
             
-            #add attributes to class Node
+            #add attributes to class node
             node_table.nodes[n].anc_count = anc_count
             node_table.nodes[n].exp_het= calc_exp_het(asm_count, node_table.nodes[n].anc_count)
-            
             length=node_table.nodes[n].length
-            
-            for k in pops:
+            for k in populations:
                 HT=node_table.nodes[n].exp_het['total']
-                HS=node_table.nodes[n].exp_het[k]
+                if k=='total':
+                    HS=np.mean(list(node_table.nodes[n].exp_het.values()))
+                    #mean is calculated after 0 limited Hs scores
+                else:
+                    HS=node_table.nodes[n].exp_het[k]
+                #print(f'{k}: {HS}')
                 if (HT==0):
                     node_table.nodes[n].Fst[k]=0 
                     # present in all samples therefore completely undifferentiated
                 else:
                     FST=(HT-HS)/HT
                     #we have below 0 FST values- apparently known to be an issue from sample sizing problems
-                    #Our samples are itty bitty so makes sense
+                    #Standard to set those to 0, so that's what we're doing
                     if FST<0:
                         FST=0
                     node_table.nodes[n].Fst[k]=FST
-                #print(f'FST {n} - {k}: {node_table.nodes[n].Fst[k]}')
-                complexity[f'{metric}_{k}']+=length*node_table.nodes[n].Fst[k]
                 
+                #calculate degree from link table for degree normalized
+                if metric=='popuniq-normdegree':
+                    degree=0
+                    for l in link_table.links.keys():
+                        if ((n==link_table.links[l].node_1) | (n==link_table.links[l].node_2)):
+                            degree+=1                
+                    complexity[f'{metric}_{k}']+=degree*node_table.nodes[n].Fst[k]
+                    
+                else:
+                    complexity[f'{metric}_{k}']+=length*node_table.nodes[n].Fst[k]
+            ###
         if metric == 'popuniq-normwalk':
                 complexity = {key: value / node_table.get_mean_walk_length() for key, value in complexity.items()}
         elif metric == 'popuniq-normnode':
             complexity = {key: value / node_table.get_mean_node_length() for key, value in complexity.items()}
+        elif metric == 'sequniq-normdegree':
+            complexity={key: value/(2*len(list(link_table.links.keys()))/len(list(node_table.nodes.keys()))) for key, value in complexity.items()}
     return list(complexity.values())
