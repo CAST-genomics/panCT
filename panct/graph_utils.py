@@ -32,13 +32,14 @@ class Node:
         Add a sample to the node
     """
 
-    def __init__(self, nodeid, length=0):
+    def __init__(self, nodeid, length=0, degree=0):
         self.nodeid = nodeid
         self.length = length
         self.samples = set()
         self.anc_count = dict()
         self.exp_het = dict()
         self.Fst = dict()
+        self.degree= degree
     def add_sample(self, sampid):
         """
         Add a sample to the node
@@ -215,6 +216,19 @@ class NodeTable:
         if len(self.nodes.keys()) == 0:
             return np.nan
         return float(np.mean([n.length for n in self.nodes.values()]))
+
+    def get_mean_degree(self) -> float:
+        """
+        Get mean degree of all nodes
+
+        Returns
+        -------
+            Returns np.nan if there are no nodes
+        mean_node_length : float
+        """
+        if len(self.nodes.keys()) == 0:
+            return np.nan
+        return float(np.mean([n.degree for n in self.nodes.values()]))
 
     def get_total_node_length(self) -> int:
         """

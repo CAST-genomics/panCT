@@ -147,11 +147,18 @@ def main(
             exclude = [reference]
         node_table = gutils.NodeTable(graph_file, exclude,walk_file)
         #do we need to exclude walks from link file? things to consider...
-        link_table=gutils.LinkTable(graph_file,reference)
+        if 'popuniq-normdegree' in metrics_list:
+            link_table=gutils.LinkTable(graph_file,reference)
+            for n in node_table.nodes:
+                for l in link_table.links.keys():
+                    if ((n==link_table.links[l].node_1) | (n==link_table.links[l].node_2)):
+                        node_table.nodes[n].degree+=1   
+        else:
+            link_table=None
 
         metric_results = []
         for m in metrics_list:
-            metric_results.extend(compute_population_uniqueness(node_table, link_table, asm, asm_count, m, exclude_samples))
+            metric_results.extend(compute_population_uniqueness(node_table, asm, asm_count, m, exclude_samples))
 
         items = [
             len(node_table.nodes.keys()),
@@ -188,17 +195,24 @@ def main(
         # Load node table for the region
         
         node_table = gbz.load_node_table_from_gbz(graph_file, region, reference, exclude_samples, walk_file)
-        
-        if (node_table.gfa_file!=None):
-            link_table=gutils.LinkTable(node_table.gfa_file,reference)
-        else:
-            log.info('Node table does not contain gfa file, using gbz file for link table.')
-            link_table = gbz.load_link_table_from_gbz(graph_file, region, reference, exclude_samples, walk_file)
+        if 'popuniq-normdegree' in metrics_list:
+            if (node_table.gfa_file!=None):
+                link_table=gutils.LinkTable(node_table.gfa_file,reference)
+            else:
+                log.info('Node table does not contain gfa file, using gbz file for link table.')
+                link_table = gbz.load_link_table_from_gbz(graph_file, region, reference, exclude_samples, walk_file)
+                #put degree into node_table- how would be the best way to do this within the node_table class?
+            for n in node_table.nodes:
+                for l in link_table.links.keys():
+                    if ((n==link_table.links[l].node_1) | (n==link_table.links[l].node_2)):
+                        node_table.nodes[n].degree+=1                
 
+        else:
+            link_table=None
         metric_results = []
         log.info('computing population specific sequence uniqueness')
         for m in metrics_list:
-            metric_results.extend(compute_population_uniqueness(node_table, link_table, asm, asm_count, m, exclude_samples))
+            metric_results.extend(compute_population_uniqueness(node_table, asm, asm_count, m, exclude_samples))
         
         items = (
             [region.chrom, region.start, region.end]
@@ -237,7 +251,7 @@ def calc_exp_het(asm_count,anc):
         exp_het[k]=2*p*q
     return(exp_het) 
 
-def compute_population_uniqueness(node_table: gutils.NodeTable, link_table: gutils.LinkTable, asm, asm_count, metric:str,exclude_samples=['GRCh38','CHM13']):
+def compute_population_uniqueness(node_table: gutils.NodeTable, asm, asm_count, metric:str,exclude_samples=['GRCh38','CHM13']):
     """
     Compute population specific uniqueness for a node table. Options:
     popuniq-normwalk
@@ -313,11 +327,8 @@ def compute_population_uniqueness(node_table: gutils.NodeTable, link_table: guti
                 
                 #calculate degree from link table for degree normalized
                 if metric=='popuniq-normdegree':
-                    degree=0
-                    for l in link_table.links.keys():
-                        if ((n==link_table.links[l].node_1) | (n==link_table.links[l].node_2)):
-                            degree+=1                
-                    complexity[f'{metric}_{k}']+=degree*node_table.nodes[n].Fst[k]
+                    degree=0             
+                    complexity[f'{metric}_{k}']+=node_table.nodes[n].degree*node_table.nodes[n].Fst[k]
                     
                 else:
                     complexity[f'{metric}_{k}']+=length*node_table.nodes[n].Fst[k]
@@ -327,5 +338,5 @@ def compute_population_uniqueness(node_table: gutils.NodeTable, link_table: guti
         elif metric == 'popuniq-normnode':
             complexity = {key: value / node_table.get_mean_node_length() for key, value in complexity.items()}
         elif metric == 'sequniq-normdegree':
-            complexity={key: value/(2*len(list(link_table.links.keys()))/len(list(node_table.nodes.keys()))) for key, value in complexity.items()}
+            complexity={key: value / node_table.get_mean_degree() for key, value in complexity.items()}
     return list(complexity.values())

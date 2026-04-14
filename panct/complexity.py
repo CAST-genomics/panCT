@@ -110,6 +110,12 @@ def main(
             exclude_samples =set(exclude_samples+[reference])
             log.info(f'filtering out the following samples: {exclude_samples}')
         node_table = gutils.NodeTable(graph_file, exclude_samples,walk_file)
+        if 'sequniq-normdegree' in metrics_list:
+            link_table=gutils.LinkTable(graph_file,reference)
+            for n in node_table.nodes:
+                for l in link_table.links.keys():
+                    if ((n==link_table.links[l].node_1) | (n==link_table.links[l].node_2)):
+                        node_table.nodes[n].degree+=1 
         metric_results = []
         for m in metrics_list:
             metric_results.append(compute_complexity(node_table, m))
@@ -147,17 +153,20 @@ def main(
         )
         # Load node table for the region
         node_table = gbz.load_node_table_from_gbz(graph_file, region, reference, exclude_samples, walk_file)
-
-        # Load link table for the region
         if (node_table.gfa_file!=None):
             link_table=gutils.LinkTable(node_table.gfa_file,reference)
         else:
             'Node table does not contain gfa file, using gbz file for link table.'
             link_table = gbz.load_link_table_from_gbz(graph_file, region, reference, exclude_samples, walk_file)
-        # Compute each requested complexity metric
+        #  compute degrees
+        for n in node_table.nodes:
+            for l in link_table.links.keys():
+                if ((n==link_table.links[l].node_1) | (n==link_table.links[l].node_2)):
+                    node_table.nodes[n].degree+=1 
+        # Load link table for the region
         metric_results = []
         for m in metrics_list:
-            metric_results.append(compute_complexity(node_table,link_table, m))
+            metric_results.append(compute_complexity(node_table, m))
 
         # Output
         items = (
@@ -172,7 +181,7 @@ def main(
                 node_table.get_mean_node_length_dropSNV(),
                 (node_table.get_number_SNVs()/len(node_table.nodes.keys())),
                 (node_table.get_number_min50bp()/len(node_table.nodes.keys())),
-                2*len(list(link_table.links.keys()))/len(list(node_table.nodes.keys())),
+                node_table.get_mean_degree(),
             ]
             + metric_results
         )
@@ -187,7 +196,7 @@ def main(
     outf.close()
     return 0
 
-def compute_complexity(node_table: gutils.NodeTable,link_table: gutils.LinkTable, metric: str) -> Optional[float]:
+def compute_complexity(node_table: gutils.NodeTable,metric: str) -> Optional[float]:
     """
     Compute complexity for a node table. Options:
 
@@ -227,18 +236,13 @@ def compute_complexity(node_table: gutils.NodeTable,link_table: gutils.LinkTable
     # Add up value for each node
     if metric in ('sequniq-normwalk', 'sequniq-normnode','raw-percentage','sequniq-unnorm','sequniq-normdegree'):
         for n in node_table.nodes.keys():
-            length = node_table.nodes[n].length
             p = len(node_table.nodes[n].samples) / node_table.numwalks
             if(metric=='raw-percentage'):
                 complexity += p * (1 - p)
-            elif(metric=='sequniq-normdegree'):
-                degree=0
-                for l in link_table.links.keys():
-                    if ((n==link_table.links[l].node_1) | (n==link_table.links[l].node_2)):
-                        degree+=1                
-                complexity += degree * p * (1 - p)
+            elif(metric=='sequniq-normdegree'):             
+                complexity += node_table.nodes[n].degree * p * (1 - p)
             else:
-                complexity += length * p * (1 - p)
+                complexity += node_table.nodes[n].length * p * (1 - p)
         # Normalize
         if metric == "sequniq-normwalk":
             complexity = complexity / node_table.get_mean_walk_length()
@@ -249,7 +253,7 @@ def compute_complexity(node_table: gutils.NodeTable,link_table: gutils.LinkTable
         elif metric == 'sequniq-unnorm':
             complexity = complexity
         elif metric == 'sequniq-normdegree':
-            complexity=complexity/(2*len(list(link_table.links.keys()))/len(list(node_table.nodes.keys())))
+            complexity=complexity/node_table.get_mean_degree()
             
         return complexity
     raise ValueError(f"Invalid metric {metric}")
