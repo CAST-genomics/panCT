@@ -82,7 +82,7 @@ jobs:
           nox --verbose --python=${{ matrix.python }}
 
       - name: Upload coverage data
-        if: always() && matrix.session == 'tests'
+        # if: always() && matrix.session == 'tests'
         if: false  # temporarily disable coverage upload for now
         uses: actions/upload-artifact@v7
         with:
