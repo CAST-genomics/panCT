@@ -83,7 +83,8 @@ jobs:
 
       - name: Upload coverage data
         if: always() && matrix.session == 'tests'
-        uses: "actions/upload-artifact@v4"
+        if: false  # temporarily disable coverage upload for now
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-data
           path: ".coverage.*"
