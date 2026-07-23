@@ -1,3 +1,4 @@
+#before modifying for increased efficiency
 """
 Compute population specific uniqueness scores for regions
 of a pangenome graph
@@ -113,7 +114,6 @@ def main(
     log.info(f'Filtering out the following samples: {exclude_samples}.'
              "['GRCh38','CHM13', 'HG00272', 'HG03492'] recommended for pangenome v2.0")
     #TODO: make recommended exclusion list for v1
-    #['GRCh38','CHM13', 'HG00272', 'HG03492'] for v 2
     assemblies=assemblies[~assemblies['Sample ID'].isin(exclude_samples)]
     
     #dictionary of sample sizes for each population
@@ -149,14 +149,24 @@ def main(
         #do we need to exclude walks from link file? things to consider...
         if 'popuniq-normdegree' in metrics_list:
             link_table=gutils.LinkTable(graph_file,reference)
+                    #try for increased efficiency
+            for l in link_table.links.values():
+                if l.node_1 in node_table.nodes:
+                    node_table.nodes[l.node_1].degree += 1
+                if l.node_2 != l.node_1 and l.node_2 in node_table.nodes:
+                    node_table.nodes[l.node_2].degree += 1
+            """"
             for n in node_table.nodes:
                 for l in link_table.links.keys():
                     if ((n==link_table.links[l].node_1) | (n==link_table.links[l].node_2)):
-                        node_table.nodes[n].degree+=1   
+                        node_table.nodes[n].degree+=1 
+            """
         else:
             link_table=None
 
-        metric_results = compute_population_uniqueness(node_table, asm, asm_count, metrics_list, exclude_samples)
+        metric_results = []
+        for m in metrics_list:
+            metric_results.extend(compute_population_uniqueness(node_table, asm, asm_count, m, exclude_samples))
 
         items = [
             len(node_table.nodes.keys()),
@@ -207,8 +217,10 @@ def main(
 
         else:
             link_table=None
+        metric_results = []
         log.info('computing population specific sequence uniqueness')
-        metric_results = compute_population_uniqueness(node_table, asm, asm_count, metrics_list, exclude_samples)
+        for m in metrics_list:
+            metric_results.extend(compute_population_uniqueness(node_table, asm, asm_count, m, exclude_samples))
         
         items = (
             [region.chrom, region.start, region.end]
@@ -247,11 +259,9 @@ def calc_exp_het(asm_count,anc):
         exp_het[k]=2*p*q
     return(exp_het) 
 
-def compute_population_uniqueness(node_table: gutils.NodeTable, asm, asm_count, metrics: list[str], exclude_samples=['GRCh38','CHM13']):
+def compute_population_uniqueness(node_table: gutils.NodeTable, asm, asm_count, metric:str,exclude_samples=['GRCh38','CHM13']):
     """
-    Compute population specific uniqueness for a node table for one or more
-    metrics, accumulating all requested metrics in a single pass over the
-    nodes. Options:
+    Compute population specific uniqueness for a node table. Options:
     popuniq-normwalk
     popuniq-normnode
     popuniq-normdegree
@@ -266,18 +276,14 @@ def compute_population_uniqueness(node_table: gutils.NodeTable, asm, asm_count, 
         dictionary that maps sample ID to population. Based on assemblies file.
     asm_count: dict
         dictionary of the sample sizes for each population in the total assembly
-    metrics : list[str]
-       Which metrics to compute, in the order they should be returned.
-       See description above for valid options.
+    metric : str
+       Which metric to compute. See description above
     exclude_samples: list
         List of samples to ignore for analysis (particularly those in assembly file that aren't in the assembly.)
     Returns
     -------
-    popuniq : list[float]
-       List of population uniqueness scores. For each metric (in the order
-       given in `metrics`), there is 1 score per population, plus a total
-       score, concatenated together in metric order. Total score calculated
-       using mean Hs for all populations.
+    popuniq : float
+       List of population uniqueness scores, with 1 score per population, as well as a total score. Total score calculated using mean Hs for all populations.
 
     Raises
     ------
@@ -285,83 +291,69 @@ def compute_population_uniqueness(node_table: gutils.NodeTable, asm, asm_count, 
        If invalid metric specified
     
     """
-    for m in metrics:
-        if m not in AVAILABLE_METRICS:
-            raise ValueError(f"Invalid metric {m}")
-
-    populations = sorted(list(asm_count.keys()))+['total']
+    populations=sorted(list(asm_count.keys()))+['total']
     #TOTAL HAS TO BE LAST- it is calculated on last loop of populations as an average of the previous values.
-
-    # Accumulators, one dict per metric, all populated together in a single
-    # pass over the nodes (instead of re-looping over the nodes once per metric).
-    popuniq = {m: dict.fromkeys([f'{m}_{x}' for x in populations], 0) for m in metrics}
-
-    for n in node_table.nodes.keys():
-        #get list of samples present for node
-        pops = []
-        pops.extend(
-            asm[s.split('.')[0]]
-            for s in node_table.nodes[n].samples
-            if s.split('.')[0] not in exclude_samples)
-            #list of populations present for node- take the population value from the node to pop dict
-
-        #get dictionary of population instances
-        anc_count = Counter(pops)
-        anc_count = {key: anc_count.get(key, 0) for key in asm.values()}
-        #count instances into dictionary
-
-        #add attributes to class node
-        node_table.nodes[n].anc_count = anc_count
-        node_table.nodes[n].exp_het= calc_exp_het(asm_count, node_table.nodes[n].anc_count)
-        length=node_table.nodes[n].length
-        degree=node_table.nodes[n].degree
-        for k in populations:
-            HT=node_table.nodes[n].exp_het['total']
-            if k=='total':
-                HS=np.mean(list(node_table.nodes[n].exp_het.values()))
-                #mean is calculated after 0 limited Hs scores
-            else:
-                HS=node_table.nodes[n].exp_het[k]
-            #print(f'{k}: {HS}')
-            if (HT==0):
-                node_table.nodes[n].Fst[k]=0 
-                # present in all samples therefore completely undifferentiated
-            else:
-                FST=(HT-HS)/HT
-                #we have below 0 FST values- apparently known to be an issue from sample sizing problems
-                #Standard to set those to 0, so that's what we're doing
-                if FST<0:
-                    FST=0
-                node_table.nodes[n].Fst[k]=FST
-
-            fst_val = node_table.nodes[n].Fst[k]
-            #calculate degree from link table for degree normalized, length otherwise
-            for m in metrics:
-                if m=='popuniq-normdegree':
-                    popuniq[m][f'{m}_{k}']+=degree*fst_val
+    if metric in ('popuniq-normwalk', 'popuniq-normnode','popuniq-normdegree'):
+        popuniq=dict.fromkeys([f'{metric}_{x}' for x in populations], 0)
+        for n in node_table.nodes.keys():
+            #get list of samples present for node
+            pops = []
+            pops.extend(
+                asm[s.split('.')[0]]
+                for s in node_table.nodes[n].samples
+                if s.split('.')[0] not in exclude_samples)
+                #list of populations present for node- take the population value from the node to pop dict
+            
+            #get dictionary of population instances
+            anc_count = Counter(pops)
+            anc_count = {key: anc_count.get(key, 0) for key in asm.values()}
+            #count instances into dictionary
+            
+            #add attributes to class node
+            node_table.nodes[n].anc_count = anc_count
+            node_table.nodes[n].exp_het= calc_exp_het(asm_count, node_table.nodes[n].anc_count)
+            length=node_table.nodes[n].length
+            for k in populations:
+                HT=node_table.nodes[n].exp_het['total']
+                if k=='total':
+                    HS=np.mean(list(node_table.nodes[n].exp_het.values()))
+                    #mean is calculated after 0 limited Hs scores
                 else:
-                    popuniq[m][f'{m}_{k}']+=length*fst_val
-        ###
-
-    n_nodes = len(node_table.nodes.keys())
-    for m in metrics:
-        if n_nodes>0:
-            if m == 'popuniq-normwalk':
-                popuniq[m] = {key: value / node_table.get_mean_walk_length() for key, value in popuniq[m].items()}
-            elif m == 'popuniq-normnode':
-                popuniq[m] = {key: value / node_table.get_mean_node_length() for key, value in popuniq[m].items()}
-            elif m == 'popuniq-normdegree':
+                    HS=node_table.nodes[n].exp_het[k]
+                #print(f'{k}: {HS}')
+                if (HT==0):
+                    node_table.nodes[n].Fst[k]=0 
+                    # present in all samples therefore completely undifferentiated
+                else:
+                    FST=(HT-HS)/HT
+                    #we have below 0 FST values- apparently known to be an issue from sample sizing problems
+                    #Standard to set those to 0, so that's what we're doing
+                    if FST<0:
+                        FST=0
+                    node_table.nodes[n].Fst[k]=FST
+                
+                #calculate degree from link table for degree normalized
+                if metric=='popuniq-normdegree':
+                    degree=0             
+                    popuniq[f'{metric}_{k}']+=node_table.nodes[n].degree*node_table.nodes[n].Fst[k]
+                    
+                else:
+                    popuniq[f'{metric}_{k}']+=length*node_table.nodes[n].Fst[k]
+            ###
+        if len(node_table.nodes.keys())>0:
+            if metric == 'popuniq-normwalk':
+                    popuniq = {key: value / node_table.get_mean_walk_length() for key, value in popuniq.items()}
+            elif metric == 'popuniq-normnode':
+                popuniq = {key: value / node_table.get_mean_node_length() for key, value in popuniq.items()}
+            elif metric == 'popuniq-normdegree':
+                #popuniq={key: value / node_table.get_mean_degree() for key, value in popuniq.items()}
                 mean_degree = node_table.get_mean_degree()
-                popuniq[m] = {
+                popuniq = {
                     key: (value / mean_degree if mean_degree != 0 else np.nan)
-                    for key, value in popuniq[m].items()
+                    for key, value in popuniq.items()
                 }
         else:
-            popuniq[m] = {
-                key: np.nan for key in popuniq[m]
-            }
-
-    results = []
-    for m in metrics:
-        results.extend(popuniq[m].values())
-    return results
+            popuniq = {
+                key: np.nan for key, value in popuniq.items()
+            } 
+    return list(popuniq.values())

@@ -1,3 +1,5 @@
+#old version of complexity - before improved efficiency
+
 """
 Compute complexity scores for regions
 of a pangenome graph
@@ -115,13 +117,10 @@ def main(
             for n in node_table.nodes:
                 for l in link_table.links.keys():
                     if ((n==link_table.links[l].node_1) | (n==link_table.links[l].node_2)):
-                        node_table.nodes[n].degree+=1
-
-        #updating for increased efficiency
-        metric_results = compute_complexity(node_table, metrics_list)
-        #metric_results = []
-        #for m in metrics_list:
-        #    metric_results.append(compute_complexity(node_table, m))
+                        node_table.nodes[n].degree+=1 
+        metric_results = []
+        for m in metrics_list:
+            metric_results.append(compute_complexity(node_table, m))
         items = [
             len(node_table.nodes.keys()),
             node_table.get_total_node_length(),
@@ -162,23 +161,14 @@ def main(
             'Node table does not contain gfa file, using gbz file for link table.'
             link_table = gbz.load_link_table_from_gbz(graph_file, region, reference, exclude_samples, walk_file)
         #  compute degrees
-        """
         for n in node_table.nodes:
             for l in link_table.links.keys():
                 if ((n==link_table.links[l].node_1) | (n==link_table.links[l].node_2)):
                     node_table.nodes[n].degree+=1 
-        """
-        #try for increased efficiency
-        for l in link_table.links.values():
-            if l.node_1 in node_table.nodes:
-                node_table.nodes[l.node_1].degree += 1
-            if l.node_2 != l.node_1 and l.node_2 in node_table.nodes:
-                node_table.nodes[l.node_2].degree += 1
         # Load link table for the region
-        metric_results = compute_complexity(node_table, metrics_list)
-        #metric_results = []
-        #for m in metrics_list:
-        #    metric_results.append(compute_complexity(node_table, m))
+        metric_results = []
+        for m in metrics_list:
+            metric_results.append(compute_complexity(node_table, m))
 
         # Output
         if len(node_table.nodes.keys())>0:
@@ -226,7 +216,7 @@ def main(
     outf.close()
     return 0
 
-def compute_complexity(node_table: gutils.NodeTable,metrics: list[str]) -> list[Optional[float]]:
+def compute_complexity(node_table: gutils.NodeTable,metric: str) -> Optional[float]:
     """
     Compute complexity for a node table. Options:
 
@@ -247,8 +237,8 @@ def compute_complexity(node_table: gutils.NodeTable,metrics: list[str]) -> list[
        Stores info on lengths/walks through each node
     link_table : graph_utils.LinkTable
         Stores info on the links within the pangenome region
-    metrics : list[str]
-       List of metrics to compute. See description above
+    metric : str
+       Which metric to compute. See description above
 
     Returns
     -------
@@ -260,60 +250,36 @@ def compute_complexity(node_table: gutils.NodeTable,metrics: list[str]) -> list[
     ValueError
        If invalid metric specified
     """
-    for m in metrics:
-        if m not in AVAILABLE_METRICS:
-            raise ValueError(f"Invalid metric {m}")
-    
-        if node_table.numwalks == 0:
-            return [None] * len(metrics)
-            
     if node_table.numwalks == 0:
         return None
-    #complexity = 0
+    complexity = 0
     # Add up value for each node
-    #if metric in ('sequniq-normwalk', 'sequniq-normnode','raw-percentage','sequniq-unnorm','sequniq-normdegree'):
-
-    sums = {m: 0.0 for m in metrics} # set empty dictionary of values
-    needs_length = any(m in ('sequniq-normwalk', 'sequniq-normnode', 'sequniq-unnorm') for m in metrics) # list of all that use node length normalization
-    needs_degree = 'sequniq-normdegree' in metrics #list of all that use degree norm
-    needs_raw = 'raw-percentage' in metrics #list of all that do not use norm
-
-    for n in node_table.nodes.keys():
-        node = node_table.nodes[n]
-        p = len(node.samples) / node_table.numwalks
-        pq = p * (1 - p)
-
-        if needs_raw:
-            sums['raw-percentage'] += pq
-        if needs_degree:
-            sums['sequniq-normdegree'] += node.degree * pq
-        if needs_length:
-            length_term = node.length * pq
-            for m in ('sequniq-normwalk', 'sequniq-normnode', 'sequniq-unnorm'):
-                if m in sums:
-                    sums[m] += length_term
-                    
-    n_nodes = len(node_table.nodes.keys())
-    complexities = []
-    for m in metrics:
-        complexity = sums[m]
-        if n_nodes > 0:
-            if m == "sequniq-normwalk":
+    if metric in ('sequniq-normwalk', 'sequniq-normnode','raw-percentage','sequniq-unnorm','sequniq-normdegree'):
+        for n in node_table.nodes.keys():
+            p = len(node_table.nodes[n].samples) / node_table.numwalks
+            if(metric=='raw-percentage'):
+                complexity += p * (1 - p)
+            elif(metric=='sequniq-normdegree'):             
+                complexity += node_table.nodes[n].degree * p * (1 - p)
+            else:
+                complexity += node_table.nodes[n].length * p * (1 - p)
+        # Normalize
+        if len(node_table.nodes.keys())>0:
+            if metric == "sequniq-normwalk":
                 complexity = complexity / node_table.get_mean_walk_length()
-            elif m == "sequniq-normnode":
+            elif metric == "sequniq-normnode":
                 complexity = complexity / node_table.get_mean_node_length()
-            elif m == 'raw-percentage':
-                pass
-            elif m == 'sequniq-unnorm':
-                pass
-            elif m == 'sequniq-normdegree':
-                mean_degree = node_table.get_mean_degree()
-                if mean_degree == 0:
-                    complexity = np.nan
+            elif metric == 'raw-percentage':
+                complexity = complexity
+            elif metric == 'sequniq-unnorm':
+                complexity = complexity
+            elif metric == 'sequniq-normdegree':
+                if node_table.get_mean_degree()==0:
+                    complexity=np.nan
                 else:
-                    complexity = complexity / mean_degree
+                    complexity=complexity/node_table.get_mean_degree()
         else:
-            complexity = np.nan
-        complexities.append(complexity)
-     
-    return complexities
+            complexity=np.nan
+            
+        return complexity
+    raise ValueError(f"Invalid metric {metric}")

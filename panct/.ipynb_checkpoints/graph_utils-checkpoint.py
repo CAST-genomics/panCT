@@ -573,10 +573,10 @@ class WalkTable:
 
     """
 
-    def __init__(self, gfa_file: Path = None, exclude_samples: list[str] = [],walk_table: Path = None):
+    def __init__(self, gfa_file: Path = None, exclude_samples: list[str] = []):
         self.walks =  {} 
         if gfa_file is not None:
-            self.load_walks_from_gfa(gfa_file, exclude_samples,walk_file)
+            self.load_walks_from_gfa(gfa_file, exclude_samples)
 
     def add_walk(self, walk: Walk):
         """

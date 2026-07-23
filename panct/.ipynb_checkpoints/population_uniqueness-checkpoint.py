@@ -24,7 +24,7 @@ def main(
     graph_file: Path,
     output_file: Path = Path("/dev/stdout"),
     region_str: str | Path = None,
-    metrics: str = "popuniq-normwalk",
+    metrics: str = "sequniq-normwalk",
     reference: str = "GRCh38",
     exclude_samples: str ="GRCh38,CHM13",
     walk_file : Path= None,

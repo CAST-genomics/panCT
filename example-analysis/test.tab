@@ -1,0 +1,2 @@
+chrom	start	end	numnodes	total_length	numwalks	median_length	median_length_drop_SNV	mean_length	mean_length_drop_SNV	ratio_SNV	ratio_min50bp	mean_degree	sequniq-normwalk	sequniq-normnode	raw-percentage	sequniq-unnorm	sequniq-normdegree	sequniq-norm_meanwalk
+chr11	119077050	119178859	3834	103538	464	1.0	47.0	27.005216484089722	76.82053231939163	0.6570161711006781	0.8364632237871674	2.7772561293688054	0.0014785600905818023	5.591068203346328	116.84191996135297	150.98800720867817	96.69002977941821	0.0
