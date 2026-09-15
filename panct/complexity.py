@@ -7,8 +7,9 @@ import time
 import logging
 from pathlib import Path
 from typing import Optional
-
+import os
 import numpy as np
+import resource
 
 from .logging import getLogger
 from . import gbz_utils as gbz
@@ -27,6 +28,9 @@ def main(
     exclude_samples: str = "GRCh38,CHM13",
     walk_file : Path= None,
     log: logging.Logger = None,
+    skip_highnode=False,
+    memory_limit_gb=None
+
 ):
     """
     Compute complexity scores for regions
@@ -67,6 +71,8 @@ def main(
         log = getLogger(name="complexity", level="ERROR")
     start_time = time.time()
 
+    log.debug(f"Main process RSS at startup: {resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024:.0f} MB")
+
     #### Check files and indices #####
     file_type = None
     if graph_file.suffix == ".gfa":
@@ -89,142 +95,142 @@ def main(
             log.critical(f"Encountered invalid metric {m}")
             return 1
 
+    #inform that skipping certain regions
+    if skip_highnode:
+        log.info('skip value True passed; therefore, regions with > 5e5 nodes will be skipped.')
+    if memory_limit_gb:
+        log.info(f"memory limit of {memory_limit_gb} passed; "
+        "therefore, regions requiring high memory will be skipped.")
+
+    skipped_bed_file = output_file.with_name(output_file.stem + "_skipped_regions.bed")
 
     ##### Set up output file #####
     outf = open(output_file, "w")
     header = []
     if file_type == "gbz":
         header = ["chrom", "start", "end"]
-    #to do: remove median metrics metrics
-    header.extend(["numnodes", "total_length", "numwalks", "median_length", 
-                   "median_length_drop_SNV","mean_length", "mean_length_drop_SNV", 
-                   "ratio_SNV", "ratio_min50bp","mean_degree"] + metrics_list)
+    header.extend(["numnodes", "total_length", "numwalks", "median_length",
+                   "median_length_drop_SNV", "mean_length", "mean_length_drop_SNV",
+                   "ratio_SNV", "ratio_min50bp", "mean_degree"] + metrics_list)
     outf.write("\t".join(header) + "\n")
 
-    ##### If GFA, just process the whole graph #####
-    if file_type == "gfa":
-        if region_str is not None:
-            log.warning("Regions are ignored when processing GFA")
-        exclude_samples=str.split(exclude_samples,',')
-        if reference != "":
-            exclude_samples =set(exclude_samples+[reference])
-            log.info(f'filtering out the following samples: {exclude_samples}')
-        node_table = gutils.NodeTable(graph_file, exclude_samples,walk_file)
-        if 'sequniq-normdegree' in metrics_list:
-            link_table=gutils.LinkTable(graph_file,reference)
+    # Create ONE persistent worker pool for the whole run, reused across every
+    # region's NodeTable/LinkTable build. Avoids paying interpreter-startup
+    # and import cost per region.
+    pool = gbz.make_table_pool(memory_limit_gb)
+
+    try:
+        ##### If GFA, just process the whole graph #####
+        if file_type == "gfa":
+            if region_str is not None:
+                log.warning("Regions are ignored when processing GFA")
+            exclude_samples = str.split(exclude_samples, ',')
+            if reference != "":
+                exclude_samples = set(exclude_samples + [reference])
+                log.info(f'filtering out the following samples: {exclude_samples}')
+
+            try:
+                node_table = gbz.build_table_with_limit(
+                    gutils.NodeTable,
+                    dict(gfa_file=graph_file, exclude_samples=exclude_samples, walk_file=walk_file),
+                    memory_limit_gb, log,
+                    region_label="whole graph",
+                    skipped_bed_file=skipped_bed_file,
+                    bed_fields=(graph_file.name, "NA", "NA"),
+                    pool=pool,
+                )
+            except gbz.RegionExtractionFailed:
+                log.info("Skipping whole-graph GFA run: exceeded memory cap.")
+                outf.close()
+                return 0
+
+            link_table = gutils.LinkTable(graph_file, reference)
             for n in node_table.nodes:
                 for l in link_table.links.keys():
-                    if ((n==link_table.links[l].node_1) | (n==link_table.links[l].node_2)):
-                        node_table.nodes[n].degree+=1
+                    if ((n == link_table.links[l].node_1) | (n == link_table.links[l].node_2)):
+                        node_table.nodes[n].degree += 1
 
-        #updating for increased efficiency
-        metric_results = compute_complexity(node_table, metrics_list)
-        #metric_results = []
-        #for m in metrics_list:
-        #    metric_results.append(compute_complexity(node_table, m))
-        items = [
-            len(node_table.nodes.keys()),
-            node_table.get_total_node_length(),
-            node_table.numwalks,
-        ] + metric_results
-        outf.write("\t".join([str(item) for item in items]) + "\n")
-        outf.flush()
+            metric_results = compute_complexity(node_table, metrics_list)
+            items = [
+                len(node_table.nodes.keys()),
+                node_table.get_total_node_length(),
+                node_table.numwalks,
+            ] + metric_results
+            outf.write("\t".join([str(item) for item in items]) + "\n")
+            outf.flush()
+            end_time = time.time()
+            total_time = end_time - start_time
+            log.debug(f"Total time: \t{total_time}\n")
+            outf.close()
+            return 0
+
+        #### If GBZ: Set up list of regions to process #####
+        regions = []
+        if region_str is not None:
+            if isinstance(region_str, Path):
+                regions = Regions.read(region_str, log=log)
+            else:
+                region = Region.read(region_str)
+                regions = Regions((region,), log=log)
+        if len(regions) == 0:
+            log.critical("Did not detect any regions")
+            return 1
+
+        ##### Process each region #####
+        for region in regions:
+            log.info(f"Processing region {region.chrom}:{region.start}-{region.end}")
+            region_label = f"{region.chrom}:{region.start}-{region.end}"
+
+            gfa_file = gbz.extract_region_from_gbz(
+                graph_file, region, reference,
+                memory_limit_gb=memory_limit_gb, log=log,
+                skipped_bed_file=skipped_bed_file,
+            )
+            if gfa_file is None:
+                # already logged + written to skip bed inside extract_region_from_gbz
+                continue
+
+            try:
+                if pool is not None:
+                    status, summary, metric_results = pool.apply(
+                        _pool_complexity_region_worker,
+                        ((gfa_file, exclude_samples, walk_file, reference, metrics_list),),
+                    )
+                else:
+                    status, summary, metric_results = _pool_complexity_region_worker(
+                        (gfa_file, exclude_samples, walk_file, reference, metrics_list)
+                    )
+            except Exception as e:
+                log.error(f"Unexpected error processing region {region_label}: {e}")
+                with open(skipped_bed_file, "a") as skipf:
+                    skipf.write(f"{region.chrom}\t{region.start}\t{region.end}\n")
+                continue
+
+            if status != "ok":
+                log.warning(
+                    f"Region {region_label} failed ({status}); likely exceeded {memory_limit_gb}GB cap."
+                    if memory_limit_gb is not None else
+                    f"Region {region_label} failed ({status})."
+                )
+                with open(skipped_bed_file, "a") as skipf:
+                    skipf.write(f"{region.chrom}\t{region.start}\t{region.end}\n")
+                continue
+
+            items = [region.chrom, region.start, region.end] + list(summary.values()) + metric_results
+            outf.write("\t".join([str(item) for item in items]) + "\n")
+            outf.flush()
+
+        ##### Cleanup #####
         end_time = time.time()
-        total_time = end_time - start_time
-        log.debug(f"Total time: \t{total_time}\n")
+        time_per_region = (end_time - start_time) / len(regions)
+        log.debug(f"Time per region\t{time_per_region}\n")
         outf.close()
         return 0
 
-    #### If GBZ: Set up list of regions to process #####
-    regions = []
-    if region_str is not None:
-        if isinstance(region_str, Path):
-            regions = Regions.read(region_str, log=log)
-        else:
-            region = Region.read(region_str)
-            regions = Regions((region,), log=log)
-    if len(regions) == 0:
-        log.critical("Did not detect any regions")
-        return 1
-
-    ##### Process each region #####
-    for region in regions:
-        log.info(
-            "Processing region {chrom}:{start}-{end}".format(
-                chrom=region.chrom, start=region.start, end=region.end
-            )
-        )
-        # Load node table for the region
-        node_table = gbz.load_node_table_from_gbz(graph_file, region, reference, exclude_samples, walk_file)
-        if (node_table.gfa_file!=None):
-            link_table=gutils.LinkTable(node_table.gfa_file,reference)
-        else:
-            'Node table does not contain gfa file, using gbz file for link table.'
-            link_table = gbz.load_link_table_from_gbz(graph_file, region, reference, exclude_samples, walk_file)
-        #  compute degrees
-        """
-        for n in node_table.nodes:
-            for l in link_table.links.keys():
-                if ((n==link_table.links[l].node_1) | (n==link_table.links[l].node_2)):
-                    node_table.nodes[n].degree+=1 
-        """
-        #try for increased efficiency
-        for l in link_table.links.values():
-            if l.node_1 in node_table.nodes:
-                node_table.nodes[l.node_1].degree += 1
-            if l.node_2 != l.node_1 and l.node_2 in node_table.nodes:
-                node_table.nodes[l.node_2].degree += 1
-        # Load link table for the region
-        metric_results = compute_complexity(node_table, metrics_list)
-        #metric_results = []
-        #for m in metrics_list:
-        #    metric_results.append(compute_complexity(node_table, m))
-
-        # Output
-        if len(node_table.nodes.keys())>0:
-            items = (
-                [region.chrom, region.start, region.end]
-                + [
-                    len(node_table.nodes.keys()),
-                    node_table.get_total_node_length(),
-                    node_table.numwalks,
-                    node_table.get_median_node_length(),
-                    node_table.get_median_node_length_dropSNV(),
-                    (node_table.get_total_node_length()/len(node_table.nodes.keys())),
-                    node_table.get_mean_node_length_dropSNV(),
-                    (node_table.get_number_SNVs()/len(node_table.nodes.keys())),
-                    (node_table.get_number_min50bp()/len(node_table.nodes.keys())),
-                    node_table.get_mean_degree(),
-                ]
-                + metric_results
-            )
-        else:
-            items = (
-                [region.chrom, region.start, region.end]
-                + [
-                    len(node_table.nodes.keys()),
-                    node_table.get_total_node_length(),
-                    node_table.numwalks,
-                    node_table.get_median_node_length(),
-                    node_table.get_median_node_length_dropSNV(),
-                    np.nan,
-                    node_table.get_mean_node_length_dropSNV(),
-                    np.nan,
-                    np.nan,
-                    node_table.get_mean_degree(),
-                ]
-                + metric_results
-            )            
-
-        outf.write("\t".join([str(item) for item in items]) + "\n")
-        outf.flush()
-
-    ##### Cleanup #####
-    end_time = time.time()
-    time_per_region = (end_time - start_time) / len(regions)
-    log.debug(f"Time per region\t{time_per_region}\n")
-    outf.close()
-    return 0
+    finally:
+        if pool is not None:
+            pool.close()
+            pool.join()
 
 def compute_complexity(node_table: gutils.NodeTable,metrics: list[str]) -> list[Optional[float]]:
     """
@@ -317,3 +323,47 @@ def compute_complexity(node_table: gutils.NodeTable,metrics: list[str]) -> list[
         complexities.append(complexity)
      
     return complexities
+
+def _pool_complexity_region_worker(args):
+    """
+    Runs entirely inside the worker: builds NodeTable (+ LinkTable if needed),
+    computes complexity metrics, and returns only small summary data —
+    never the NodeTable/LinkTable objects themselves, to avoid the
+    pickling-memory-spike problem on the return trip.
+    """
+    gfa_file, exclude_samples, walk_file, reference, metrics_list = args
+    try:
+        node_table = gutils.NodeTable(gfa_file=gfa_file, exclude_samples=exclude_samples, walk_file=walk_file)
+
+        if node_table.gfa_file is not None:
+            link_table = gutils.LinkTable(node_table.gfa_file, exclude_samples)
+        else:
+            link_table = None
+
+        if link_table is not None:
+            for l in link_table.links.values():
+                if l.node_1 in node_table.nodes:
+                    node_table.nodes[l.node_1].degree += 1
+                if l.node_2 != l.node_1 and l.node_2 in node_table.nodes:
+                    node_table.nodes[l.node_2].degree += 1
+
+        metric_results = compute_complexity(node_table, metrics_list)
+        n_nodes = len(node_table.nodes.keys())
+
+        summary = {
+            "numnodes": n_nodes,
+            "total_length": node_table.get_total_node_length(),
+            "numwalks": node_table.numwalks,
+            "median_length": node_table.get_median_node_length(),
+            "median_length_drop_SNV": node_table.get_median_node_length_dropSNV(),
+            "mean_length": (node_table.get_total_node_length() / n_nodes) if n_nodes > 0 else np.nan,
+            "mean_length_drop_SNV": node_table.get_mean_node_length_dropSNV(),
+            "ratio_SNV": (node_table.get_number_SNVs() / n_nodes) if n_nodes > 0 else np.nan,
+            "ratio_min50bp": (node_table.get_number_min50bp() / n_nodes) if n_nodes > 0 else np.nan,
+            "mean_degree": node_table.get_mean_degree(),
+        }
+        return ("ok", summary, metric_results)
+    except MemoryError:
+        return ("memory_error", None, None)
+    except Exception as e:
+        return ("error", str(e), None)

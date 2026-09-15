@@ -88,7 +88,9 @@ def complexity(
         str,
         typer.Option("-e",
             "--exclude",
-            help="Comma separated list of samples to exclude from analysis. ",
+            help="Comma separated list of samples to exclude from analysis."
+            "Use in case where assembly file lists samples not in graph file."
+            "GRCh38,CHM13,HG00272,HG03492 recommended for pangenome v2.0",
         ),
     ] = "GRCh38,CHM13",
     metrics: Annotated[
@@ -109,6 +111,19 @@ def complexity(
     output_file: Annotated[
         Path, typer.Option("-o", "--out", help="Name of output file")
     ] = Path("/dev/stdout"),
+
+    skip_highnode: Annotated[
+    bool, typer.Option("-s", "--skip", help="Default False. Pass if you want to skip calculating population uniqueness in regions"
+                      "that have greater than 5e5 nodes. These regions will be written into a file for rerunning."
+                      "This flag exists if you want to run your code on a lower memory machine (4-8GB), and save high complexity"
+                      "regions for a higher memory machine (up to 32GB). These regions will also be very time consuming to run. "
+                       "Remove or set to False if want not to run. "),
+    ] = False,
+    memory_limit_gb: Annotated[
+        float, typer.Option("-mem","--memory_limit_gb", help="Optional limit on how much memory. Input float for GB allowed to be used for reading in the f."
+        " Input into for amount of memory allowed to use for reading in the region. This flag exists if you want to run your code on a lower memory"
+        "machine (4-8GB), and save high complexity regions for a higher memory machine (up to 32GB)"),
+    ]=None,
     verbosity: verbose = Verbosity.info,
 ):
     """
@@ -123,7 +138,7 @@ def complexity(
         region_str = None
     elif Path(region).exists():
         region_str = Path(region)
-    retcode = complexity_main(graph, output_file, region_str, metrics, reference, exclude_samples, walk_file,log)
+    retcode = complexity_main(graph, output_file, region_str, metrics, reference, exclude_samples, walk_file,log,skip_highnode,memory_limit_gb)
     if retcode != 0:
         typer.Exit(code=retcode)
 
@@ -185,16 +200,32 @@ def population_uniqueness(
             "Options: " + ", ".join(pop_uniq_metrics),
         ),
     ] = "popuniq-normwalk",
+    
     reference: Annotated[
         str,
         typer.Option(
             "-ref", "--reference", help="The ID of the reference sequence in the GFA file"
         ),
     ] = "GRCh38",
+    
     output_file: Annotated[
         Path, typer.Option("-o", "--out", help="Name of output file")
     ] = Path("/dev/stdout"),
-    verbosity: verbose = Verbosity.info,
+    
+    skip_highnode: Annotated[
+    bool, typer.Option("-s", "--skip", help="Default False. Pass if you want to skip calculating population uniqueness in regions"
+                      "that have greater than 5e5 nodes. These regions will be written into a file for rerunning."
+                      "This flag exists if you want to run your code on a lower memory machine (4-8GB), and save high complexity"
+                      "regions for a higher memory machine (up to 32GB). These regions will also be very time consuming to run. "
+                       "Remove or set to False if want not to run. "),
+    ] = False,
+    memory_limit_gb: Annotated[
+        float, typer.Option("-mem","--memory_limit_gb", help="Optional limit on how much memory allowed to use for reading in the subgraph."
+                            "Input GB limit as float. This flag exists if you want to run your code on a lower memory"
+                            "machine (4-8GB), and save high complexity regions for a higher memory machine (testing has shown up to 32GB needed)." 
+                            "Skipped regions will be written to bed file with matched name to output file."),
+    ]=None,
+    verbosity: verbose = Verbosity.info
 ):
     """
     Compute population specific sequence uniqueness scores
@@ -208,6 +239,6 @@ def population_uniqueness(
         region_str = None
     elif Path(region).exists():
         region_str = Path(region)
-    retcode = population_uniqueness_main(graph, output_file, region_str, metrics, reference, exclude_samples, walk_file, assemblies_file, log)
+    retcode = population_uniqueness_main(graph, output_file, region_str, metrics, reference, exclude_samples, walk_file, assemblies_file, log, skip_highnode,memory_limit_gb)
     if retcode != 0:
         typer.Exit(code=retcode)
