@@ -21,6 +21,30 @@ from . import graph_utils as gutils
 
 AVAILABLE_METRICS = ['popuniq-normwalk', 'popuniq-normnode','popuniq-normdegree']
 
+
+_REFERENCE_ALIASES = {
+    'GRCh38': 'GRCh38.0',
+    'CHM13': 'CHM13.0',
+}
+
+
+def _expand_reference_aliases(samples):
+    """
+    Given a list of sample IDs to exclude, add the equivalent GRCh38/GRCh38.0
+    and CHM13/CHM13.0 alias for any of those two names that appear, so that
+    exclusion works regardless of which form is used in the assemblies file
+    or on the command line.
+    """
+    reverse_aliases = {v: k for k, v in _REFERENCE_ALIASES.items()}
+    expanded = set(samples)
+    for s in list(expanded):
+        if s in _REFERENCE_ALIASES:
+            expanded.add(_REFERENCE_ALIASES[s])
+        elif s in reverse_aliases:
+            expanded.add(reverse_aliases[s])
+    return list(expanded)
+
+
 def main(
     graph_file: Path,
     output_file: Path = Path("/dev/stdout"),
@@ -60,8 +84,24 @@ def main(
     walk_file : Path
         Path to associated walk file for assembly.
     assemblies_file : Path
-        Path to a .tsv file that contains the columns 'Sample ID', 'Haplotype' and 'Population Abbreviation'.
-        Used to assign samples to population groups.
+        Path to a .tsv file that contains, at minimum, the columns
+        'Sample ID' and 'Population Abbreviation'. Used to assign samples
+        to population groups. Two formats are supported:
+
+        "haplotype-removed" format:'Sample ID' values do NOT include a 
+        haplotype suffix (e.g. "HG00097"). Both haplotypes of an individual
+        are assumed to belong to the same population.
+        
+        "haplotype-specific" format: no 'Haplotype' column; 'Sample ID'
+        values already carry a haplotype suffix (e.g. "HG00097.1"), so
+        each haplotype of an individual can be assigned to a different
+        population (or excluded independently).
+
+        The format is auto-detected based on whether any 'Sample ID' value
+        contains a ".". Rows whose 'Population Abbreviation' is "drop" are
+        excluded from analysis, in addition to any samples given via
+        `exclude_samples`. "GRCh38"/"GRCh38.0" and "CHM13"/"CHM13.0" are
+        treated as equivalent names when applying exclusions.
         Assemblies file can be downloaded from the pangenome consortium data explorer.
     log : logging.Logger, optional
         Logger object
@@ -116,18 +156,53 @@ def main(
     skipped_bed_file = output_file.with_name(output_file.stem + "_skipped_regions.bed")
     
     #### Import assemblies file #####
-    assemblies=pd.read_csv(assemblies_file,sep='\t',usecols=['Sample ID','Haplotype','Population Abbreviation'])
+    assemblies_full = pd.read_csv(assemblies_file, sep='\t', dtype=str)
+    has_haplotype_col = 'Haplotype' in assemblies_full.columns
+    usecols = ['Sample ID', 'Population Abbreviation']
+    if has_haplotype_col:
+        usecols.append('Haplotype')
+    assemblies = assemblies_full[usecols].copy()
+
+    #check if the file has assemblies built into Sample ID- recommended 
+    haplotype_specific = assemblies['Sample ID'].astype(str).str.contains('.', regex=False).any()
+    log.info(
+        f"Assemblies file {'has' if haplotype_specific else 'does not have'} "
+        "haplotype-specific Sample IDs; haplotypes will be treated "
+        f"{'separately' if haplotype_specific else 'together'}."
+    )
+
+    if has_haplotype_col or haplotype_specific:
+        haplotypes_per_row = 1
+    else:
+        haplotypes_per_row = 2
+        log.info(
+            "Assemblies file has neither a 'Haplotype' column nor "
+            "haplotype-suffixed Sample IDs; assuming each listed sample is "
+            "a diploid individual contributing 2 haplotypes."
+        )
     
     # assumes 'GRCh38','CHM13' if called from command line.
     exclude_samples=exclude_samples.split(',')
+    exclude_samples = _expand_reference_aliases(exclude_samples)
+
+
+    drop_mask = assemblies['Population Abbreviation'].astype(str).str.strip().str.lower() == 'drop'
+    drop_samples = assemblies.loc[drop_mask, 'Sample ID'].tolist()
+    if drop_samples:
+        log.info(f"Excluding {len(drop_samples)} sample(s) flagged 'drop' in assemblies file: {drop_samples}")
+
+    exclude_samples = _expand_reference_aliases(list(exclude_samples) + drop_samples)
+
     log.info(f'Filtering out the following samples: {exclude_samples}.'
-             "['GRCh38','CHM13', 'HG00272', 'HG03492'] recommended for pangenome v2.0")
-    #TODO: make recommended exclusion list for v1
-    #['GRCh38','CHM13', 'HG00272', 'HG03492'] for v 2
+            'Note: excluded assembly format should match Sample ID format in assembly file.'
+             "['GRCh38','CHM13'] recommended")
+
     assemblies=assemblies[~assemblies['Sample ID'].isin(exclude_samples)]
     
     #dictionary of sample sizes for each population
     asm_count=Counter(assemblies.drop_duplicates()['Population Abbreviation'])
+    if haplotypes_per_row != 1:
+        asm_count = Counter({pop: count * haplotypes_per_row for pop, count in asm_count.items()})
     asm_count['total']=sum(asm_count.values())
     
     #dictionary of sample ID to population
@@ -143,7 +218,6 @@ def main(
         header = ["chrom", "start", "end"]
     #
     header.extend(["numnodes","total_length", "numwalks"] + sorted([f'{metric}_{x}' for metric in metrics_list for x in list(set(asm.values()))+['total']]))
-    #add mean degree?
     outf.write("\t".join(header) + "\n")
 
 
@@ -176,7 +250,6 @@ def main(
                 outf.close()
                 return 0
 
-            #do we need to exclude walks from link file? things to consider...
             if 'popuniq-normdegree' in metrics_list:
                 try:
                     link_table = gbz.build_table_with_limit(
@@ -199,12 +272,14 @@ def main(
             else:
                 link_table = None
 
-            metric_results = compute_population_uniqueness(node_table, asm, asm_count, metrics_list, exclude_samples)
+            metric_results, matched_numwalks = compute_population_uniqueness(
+                node_table, asm, asm_count, metrics_list, exclude_samples, haplotype_specific
+            )
 
             items = [
                 len(node_table.nodes.keys()),
                 node_table.get_total_node_length(),
-                node_table.numwalks,
+                matched_numwalks,
             ] + metric_results
             outf.write("\t".join([str(item) for item in items]) + "\n")
             outf.flush()
@@ -244,11 +319,11 @@ def main(
                 if pool is not None:
                     status, summary, metric_results = pool.apply(
                         _pool_popuniq_region_worker,
-                        ((gfa_file, exclude_samples, walk_file, reference, metrics_list, asm, asm_count),),
+                        ((gfa_file, exclude_samples, walk_file, reference, metrics_list, asm, asm_count, haplotype_specific),),
                     )
                 else:
                     status, summary, metric_results = _pool_popuniq_region_worker(
-                        (gfa_file, exclude_samples, walk_file, reference, metrics_list, asm, asm_count)
+                        (gfa_file, exclude_samples, walk_file, reference, metrics_list, asm, asm_count, haplotype_specific)
                     )
             except Exception as e:
                 log.error(f"Unexpected error processing region {region_label}: {e}")
@@ -301,7 +376,15 @@ def calc_exp_het(asm_count,anc):
         exp_het[k]=2*p*q
     return(exp_het) 
 
-def compute_population_uniqueness(node_table: gutils.NodeTable, asm, asm_count, metrics: list[str], exclude_samples=['GRCh38','CHM13']):
+
+def compute_population_uniqueness(
+    node_table: gutils.NodeTable,
+    asm,
+    asm_count,
+    metrics: list[str],
+    exclude_samples=['GRCh38','CHM13'],
+    haplotype_specific: bool = False,
+):
     """
     Compute population specific uniqueness for a node table for one or more
     metrics, accumulating all requested metrics in a single pass over the
@@ -318,6 +401,9 @@ def compute_population_uniqueness(node_table: gutils.NodeTable, asm, asm_count, 
         Stores info on the links within the pangenome region
     asm: dict
         dictionary that maps sample ID to population. Based on assemblies file.
+        Keyed by base Sample ID (no haplotype suffix) when haplotype_specific
+        is False, or by full Sample ID (including haplotype suffix) when
+        haplotype_specific is True.
     asm_count: dict
         dictionary of the sample sizes for each population in the total assembly
     metrics : list[str]
@@ -325,6 +411,11 @@ def compute_population_uniqueness(node_table: gutils.NodeTable, asm, asm_count, 
        See description above for valid options.
     exclude_samples: list
         List of samples to ignore for analysis (particularly those in assembly file that aren't in the assembly.)
+    haplotype_specific: bool
+        If True, `asm` is keyed by full walk sample name (Sample ID already
+        includes a haplotype suffix, e.g. "HG00097.1"), so each haplotype is
+        looked up and excluded independently rather than being collapsed to
+        a base Sample ID.
     Returns
     -------
     popuniq : list[float]
@@ -332,6 +423,13 @@ def compute_population_uniqueness(node_table: gutils.NodeTable, asm, asm_count, 
        given in `metrics`), there is 1 score per population, plus a total
        score, concatenated together in metric order. Total score calculated
        using mean Hs for all populations.
+    matched_numwalks : int
+       Number of distinct walk/sample names seen in `node_table` that are
+       both NOT excluded (via `exclude_samples`) and present in `asm` (i.e.
+       the intersection of "samples in the node table" and "samples in the
+       filtered assemblies file"). Walks belonging to a sample that is
+       simply absent from the assemblies file (and not itself excluded) are
+       skipped rather than raising a KeyError, and are not counted here.
 
     Raises
     ------
@@ -350,13 +448,35 @@ def compute_population_uniqueness(node_table: gutils.NodeTable, asm, asm_count, 
     # pass over the nodes (instead of re-looping over the nodes once per metric).
     popuniq = {m: dict.fromkeys([f'{m}_{x}' for x in populations], 0) for m in metrics}
 
+    # Distinct walk/sample names that are both un-excluded and present in the
+    # assemblies-derived population mapping. Accumulated here (rather than in
+    # a separate pass) since we're already iterating every node's samples.
+    matched_samples = set()
+
     for n in node_table.nodes.keys():
         #get list of samples present for node
         pops = []
-        pops.extend(
-            asm[s.split('.')[0]]
-            for s in node_table.nodes[n].samples
-            if s.split('.')[0] not in exclude_samples)
+        if haplotype_specific:
+            for s in node_table.nodes[n].samples:
+                if s in exclude_samples:
+                    continue
+                if s not in asm:
+                    # Present in the graph but not in the (filtered)
+                    # assemblies file - not part of the intersection.
+                    continue
+                pops.append(asm[s])
+                matched_samples.add(s)
+        else:
+            for s in node_table.nodes[n].samples:
+                base = s.split('.')[0]
+                if (base in exclude_samples) or (s in exclude_samples):
+                    continue
+                if base not in asm:
+                    # Present in the graph but not in the (filtered)
+                    # assemblies file - not part of the intersection.
+                    continue
+                pops.append(asm[base])
+                matched_samples.add(s)
             #list of populations present for node- take the population value from the node to pop dict
 
         #get dictionary of population instances
@@ -418,7 +538,7 @@ def compute_population_uniqueness(node_table: gutils.NodeTable, asm, asm_count, 
     results = []
     for m in metrics:
         results.extend(popuniq[m].values())
-    return results
+    return results, len(matched_samples)
 
 
 def _pool_popuniq_region_worker(args):
@@ -428,7 +548,7 @@ def _pool_popuniq_region_worker(args):
     metrics, cleans up the intermediate GFA file, and returns only small
     summary data — never the NodeTable/LinkTable objects themselves.
     """
-    gfa_file, exclude_samples, walk_file, reference, metrics_list, asm, asm_count = args
+    gfa_file, exclude_samples, walk_file, reference, metrics_list, asm, asm_count, haplotype_specific = args
     try:
         node_table = gutils.NodeTable(gfa_file=gfa_file, exclude_samples=exclude_samples, walk_file=walk_file)
 
@@ -443,12 +563,14 @@ def _pool_popuniq_region_worker(args):
                         if ((n == link_table.links[l].node_1) | (n == link_table.links[l].node_2)):
                             node_table.nodes[n].degree += 1
 
-        metric_results = compute_population_uniqueness(node_table, asm, asm_count, metrics_list, exclude_samples)
+        metric_results, matched_numwalks = compute_population_uniqueness(
+            node_table, asm, asm_count, metrics_list, exclude_samples, haplotype_specific
+        )
 
         summary = {
             "numnodes": len(node_table.nodes.keys()),
             "total_length": node_table.get_total_node_length(),
-            "numwalks": node_table.numwalks,
+            "numwalks": matched_numwalks,
         }
         return ("ok", summary, metric_results)
     except MemoryError:

@@ -358,8 +358,8 @@ class NodeTable:
             logger.info(f'{len(node_set)} nodes present in region')
         
             # find smallest and largest node for processing walks
-            smallest_node = min(node_set, default="")
-            largest_node = max(node_set, default="")
+            smallest_node = min(node_set, key=int, default="")
+            largest_node = max(node_set, key=int, default="")
             # Get nodes from .walk file and add with self.add_walk()
             walks = Walks.read(
                 walk_file,

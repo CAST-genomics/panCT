@@ -1,4 +1,3 @@
-#before modifying for increased efficiency
 """
 Compute population specific uniqueness scores for regions
 of a pangenome graph
@@ -12,6 +11,7 @@ from typing import Optional
 from collections import Counter
 import numpy as np
 import pandas as pd
+import os
 # pandas needs to be added to the environment files
 
 from .logging import getLogger
@@ -31,6 +31,8 @@ def main(
     walk_file : Path= None,
     assemblies_file: Path = None,
     log: logging.Logger = None,
+    skip_highnode=False,
+    memory_limit_gb=None
 ):
     """
     Compute population specific sequence uniqueness 
@@ -75,8 +77,6 @@ def main(
     start_time = time.time()
 
     #### Check files and indices #####
-
-    #add the assemblies table
     file_type = None
     if graph_file.suffix == ".gfa":
         # TODO: also handle .gfa.gz
@@ -99,13 +99,22 @@ def main(
         log.critical('GBZ file provided but walk file not found. Walk file must be provided' 
         'to get accurate node to sample mapping.')
 
-    
     #### Check requested metrics #####
     metrics_list = metrics.split(",")
     for m in metrics_list:
         if m not in AVAILABLE_METRICS:
             log.critical(f"Encountered invalid metric {m}")
             return 1
+
+    #inform that skipping certain regions
+    if skip_highnode:
+        log.info('skip value True passed; therefore, regions with > 5e5 nodes will be skipped.')
+    if memory_limit_gb:
+        log.info(f"memory limit of {memory_limit_gb} passed; "
+        "therefore, regions requiring high memory will be skipped.")
+
+    skipped_bed_file = output_file.with_name(output_file.stem + "_skipped_regions.bed")
+    
     #### Import assemblies file #####
     assemblies=pd.read_csv(assemblies_file,sep='\t',usecols=['Sample ID','Haplotype','Population Abbreviation'])
     
@@ -114,6 +123,7 @@ def main(
     log.info(f'Filtering out the following samples: {exclude_samples}.'
              "['GRCh38','CHM13', 'HG00272', 'HG03492'] recommended for pangenome v2.0")
     #TODO: make recommended exclusion list for v1
+    #['GRCh38','CHM13', 'HG00272', 'HG03492'] for v 2
     assemblies=assemblies[~assemblies['Sample ID'].isin(exclude_samples)]
     
     #dictionary of sample sizes for each population
@@ -137,109 +147,141 @@ def main(
     outf.write("\t".join(header) + "\n")
 
 
+    # Create ONE persistent worker pool for the whole run, reused across every
+    # region's NodeTable/LinkTable build. Avoids paying interpreter-startup
+    # and import cost per region.
+    pool = gbz.make_table_pool(memory_limit_gb)
 
-    ##### If GFA, just process the whole graph #####
-    if file_type == "gfa":
+    try:
+        ##### If GFA, just process the whole graph #####
+        if file_type == "gfa":
+            if region_str is not None:
+                log.warning("Regions are ignored when processing GFA")
+            exclude = []
+            if reference != "":
+                exclude = [reference]
+
+            try:
+                node_table = gbz.build_table_with_limit(
+                    gutils.NodeTable,
+                    dict(gfa_file=graph_file, exclude_samples=exclude, walk_file=walk_file),
+                    memory_limit_gb, log,
+                    region_label="whole graph",
+                    skipped_bed_file=skipped_bed_file,
+                    bed_fields=(graph_file.name, "NA", "NA"),
+                    pool=pool,
+                )
+            except gbz.RegionExtractionFailed:
+                log.info("Skipping whole-graph GFA run: exceeded memory cap.")
+                outf.close()
+                return 0
+
+            #do we need to exclude walks from link file? things to consider...
+            if 'popuniq-normdegree' in metrics_list:
+                try:
+                    link_table = gbz.build_table_with_limit(
+                        gutils.LinkTable,
+                        dict(gfa_file=graph_file, exclude_samples=exclude),
+                        memory_limit_gb, log,
+                        region_label="whole graph (link table)",
+                        skipped_bed_file=skipped_bed_file,
+                        bed_fields=(graph_file.name, "NA", "NA"),
+                        pool=pool,
+                    )
+                except gbz.RegionExtractionFailed:
+                    log.info("Skipping whole-graph GFA run: link table exceeded memory cap.")
+                    outf.close()
+                    return 0
+                for n in node_table.nodes:
+                    for l in link_table.links.keys():
+                        if ((n == link_table.links[l].node_1) | (n == link_table.links[l].node_2)):
+                            node_table.nodes[n].degree += 1
+            else:
+                link_table = None
+
+            metric_results = compute_population_uniqueness(node_table, asm, asm_count, metrics_list, exclude_samples)
+
+            items = [
+                len(node_table.nodes.keys()),
+                node_table.get_total_node_length(),
+                node_table.numwalks,
+            ] + metric_results
+            outf.write("\t".join([str(item) for item in items]) + "\n")
+            outf.flush()
+            end_time = time.time()
+            total_time = end_time - start_time
+            log.debug(f"Total time: \t{total_time}\n")
+            outf.close()
+            return 0
+
+        #### If GBZ: Set up list of regions to process #####
+        regions = []
         if region_str is not None:
-            log.warning("Regions are ignored when processing GFA")
-        exclude = []
-        if reference != "":
-            exclude = [reference]
-        node_table = gutils.NodeTable(graph_file, exclude,walk_file)
-        #do we need to exclude walks from link file? things to consider...
-        if 'popuniq-normdegree' in metrics_list:
-            link_table=gutils.LinkTable(graph_file,reference)
-                    #try for increased efficiency
-            for l in link_table.links.values():
-                if l.node_1 in node_table.nodes:
-                    node_table.nodes[l.node_1].degree += 1
-                if l.node_2 != l.node_1 and l.node_2 in node_table.nodes:
-                    node_table.nodes[l.node_2].degree += 1
-            """"
-            for n in node_table.nodes:
-                for l in link_table.links.keys():
-                    if ((n==link_table.links[l].node_1) | (n==link_table.links[l].node_2)):
-                        node_table.nodes[n].degree+=1 
-            """
-        else:
-            link_table=None
+            if isinstance(region_str, Path):
+                regions = Regions.read(region_str, log=log)
+            else:
+                region = Region.read(region_str)
+                regions = Regions((region,), log=log)
+        if len(regions) == 0:
+            log.critical("Did not detect any regions")
+            return 1
 
-        metric_results = []
-        for m in metrics_list:
-            metric_results.extend(compute_population_uniqueness(node_table, asm, asm_count, m, exclude_samples))
+        ##### Process each region #####
+        for region in regions:
+            log.info(f"Processing region {region.chrom}:{region.start}-{region.end}")
+            region_label = f"{region.chrom}:{region.start}-{region.end}"
 
-        items = [
-            len(node_table.nodes.keys()),
-            node_table.get_total_node_length(),
-            node_table.numwalks,
-        ] + metric_results
-        outf.write("\t".join([str(item) for item in items]) + "\n")
-        outf.flush()
+            gfa_file = gbz.extract_region_from_gbz(
+                graph_file, region, reference,
+                memory_limit_gb=memory_limit_gb, log=log,
+                skipped_bed_file=skipped_bed_file,
+            )
+            if gfa_file is None:
+                # already logged + written to skip bed inside extract_region_from_gbz
+                continue
+
+            try:
+                if pool is not None:
+                    status, summary, metric_results = pool.apply(
+                        _pool_popuniq_region_worker,
+                        ((gfa_file, exclude_samples, walk_file, reference, metrics_list, asm, asm_count),),
+                    )
+                else:
+                    status, summary, metric_results = _pool_popuniq_region_worker(
+                        (gfa_file, exclude_samples, walk_file, reference, metrics_list, asm, asm_count)
+                    )
+            except Exception as e:
+                log.error(f"Unexpected error processing region {region_label}: {e}")
+                with open(skipped_bed_file, "a") as skipf:
+                    skipf.write(f"{region.chrom}\t{region.start}\t{region.end}\n")
+                continue
+
+            if status != "ok":
+                log.warning(
+                    f"Region {region_label} failed ({status}); likely exceeded {memory_limit_gb}GB cap."
+                    if memory_limit_gb is not None else
+                    f"Region {region_label} failed ({status})."
+                )
+                with open(skipped_bed_file, "a") as skipf:
+                    skipf.write(f"{region.chrom}\t{region.start}\t{region.end}\n")
+                continue
+
+            log.info('computing population specific sequence uniqueness')
+            items = [region.chrom, region.start, region.end] + list(summary.values()) + metric_results
+            outf.write("\t".join([str(item) for item in items]) + "\n")
+            outf.flush()
+
+        ##### Cleanup #####
         end_time = time.time()
-        total_time = end_time - start_time
-        log.debug(f"Total time: \t{total_time}\n")
+        time_per_region = (end_time - start_time) / len(regions)
+        log.debug(f"Time per region\t{time_per_region}\n")
         outf.close()
         return 0
 
-    #### If GBZ: Set up list of regions to process #####
-    regions = []
-    if region_str is not None:
-        if isinstance(region_str, Path):
-            regions = Regions.read(region_str, log=log)
-        else:
-            region = Region.read(region_str)
-            regions = Regions((region,), log=log)
-    if len(regions) == 0:
-        log.critical("Did not detect any regions")
-        return 1
-
-    ##### Process each region #####
-    for region in regions:
-        log.info(
-            "Processing region {chrom}:{start}-{end}".format(
-                chrom=region.chrom, start=region.start, end=region.end
-            )
-        )
-        # Load node table for the region
-        
-        node_table = gbz.load_node_table_from_gbz(graph_file, region, reference, exclude_samples, walk_file)
-        if 'popuniq-normdegree' in metrics_list:
-            if (node_table.gfa_file!=None):
-                link_table=gutils.LinkTable(node_table.gfa_file,reference)
-            else:
-                log.info('Node table does not contain gfa file, using gbz file for link table.')
-                link_table = gbz.load_link_table_from_gbz(graph_file, region, reference, exclude_samples, walk_file)
-                #put degree into node_table- how would be the best way to do this within the node_table class?
-            for n in node_table.nodes:
-                for l in link_table.links.keys():
-                    if ((n==link_table.links[l].node_1) | (n==link_table.links[l].node_2)):
-                        node_table.nodes[n].degree+=1                
-
-        else:
-            link_table=None
-        metric_results = []
-        log.info('computing population specific sequence uniqueness')
-        for m in metrics_list:
-            metric_results.extend(compute_population_uniqueness(node_table, asm, asm_count, m, exclude_samples))
-        
-        items = (
-            [region.chrom, region.start, region.end]
-            + [
-                len(node_table.nodes.keys()),
-                node_table.get_total_node_length(),
-                node_table.numwalks            ]
-            + metric_results
-        )
-
-        outf.write("\t".join([str(item) for item in items]) + "\n")
-        outf.flush()
-        
-    ##### Cleanup #####
-    end_time = time.time()
-    time_per_region = (end_time - start_time) / len(regions)
-    log.debug(f"Time per region\t{time_per_region}\n")
-    outf.close()
-    return 0
+    finally:
+        if pool is not None:
+            pool.close()
+            pool.join()
 
 #see if this needs to be moved to graph utils
 def calc_exp_het(asm_count,anc):
@@ -259,9 +301,11 @@ def calc_exp_het(asm_count,anc):
         exp_het[k]=2*p*q
     return(exp_het) 
 
-def compute_population_uniqueness(node_table: gutils.NodeTable, asm, asm_count, metric:str,exclude_samples=['GRCh38','CHM13']):
+def compute_population_uniqueness(node_table: gutils.NodeTable, asm, asm_count, metrics: list[str], exclude_samples=['GRCh38','CHM13']):
     """
-    Compute population specific uniqueness for a node table. Options:
+    Compute population specific uniqueness for a node table for one or more
+    metrics, accumulating all requested metrics in a single pass over the
+    nodes. Options:
     popuniq-normwalk
     popuniq-normnode
     popuniq-normdegree
@@ -276,14 +320,18 @@ def compute_population_uniqueness(node_table: gutils.NodeTable, asm, asm_count, 
         dictionary that maps sample ID to population. Based on assemblies file.
     asm_count: dict
         dictionary of the sample sizes for each population in the total assembly
-    metric : str
-       Which metric to compute. See description above
+    metrics : list[str]
+       Which metrics to compute, in the order they should be returned.
+       See description above for valid options.
     exclude_samples: list
         List of samples to ignore for analysis (particularly those in assembly file that aren't in the assembly.)
     Returns
     -------
-    popuniq : float
-       List of population uniqueness scores, with 1 score per population, as well as a total score. Total score calculated using mean Hs for all populations.
+    popuniq : list[float]
+       List of population uniqueness scores. For each metric (in the order
+       given in `metrics`), there is 1 score per population, plus a total
+       score, concatenated together in metric order. Total score calculated
+       using mean Hs for all populations.
 
     Raises
     ------
@@ -291,69 +339,124 @@ def compute_population_uniqueness(node_table: gutils.NodeTable, asm, asm_count, 
        If invalid metric specified
     
     """
-    populations=sorted(list(asm_count.keys()))+['total']
+    for m in metrics:
+        if m not in AVAILABLE_METRICS:
+            raise ValueError(f"Invalid metric {m}")
+
+    populations = sorted(list(asm_count.keys()))+['total']
     #TOTAL HAS TO BE LAST- it is calculated on last loop of populations as an average of the previous values.
-    if metric in ('popuniq-normwalk', 'popuniq-normnode','popuniq-normdegree'):
-        popuniq=dict.fromkeys([f'{metric}_{x}' for x in populations], 0)
-        for n in node_table.nodes.keys():
-            #get list of samples present for node
-            pops = []
-            pops.extend(
-                asm[s.split('.')[0]]
-                for s in node_table.nodes[n].samples
-                if s.split('.')[0] not in exclude_samples)
-                #list of populations present for node- take the population value from the node to pop dict
-            
-            #get dictionary of population instances
-            anc_count = Counter(pops)
-            anc_count = {key: anc_count.get(key, 0) for key in asm.values()}
-            #count instances into dictionary
-            
-            #add attributes to class node
-            node_table.nodes[n].anc_count = anc_count
-            node_table.nodes[n].exp_het= calc_exp_het(asm_count, node_table.nodes[n].anc_count)
-            length=node_table.nodes[n].length
-            for k in populations:
-                HT=node_table.nodes[n].exp_het['total']
-                if k=='total':
-                    HS=np.mean(list(node_table.nodes[n].exp_het.values()))
-                    #mean is calculated after 0 limited Hs scores
+
+    # Accumulators, one dict per metric, all populated together in a single
+    # pass over the nodes (instead of re-looping over the nodes once per metric).
+    popuniq = {m: dict.fromkeys([f'{m}_{x}' for x in populations], 0) for m in metrics}
+
+    for n in node_table.nodes.keys():
+        #get list of samples present for node
+        pops = []
+        pops.extend(
+            asm[s.split('.')[0]] 
+            for s in node_table.nodes[n].samples
+            if ((s.split('.')[0] not in exclude_samples)&(s not in exclude_samples))) #### NEED TO CHANGE- ADD HAPLOTYPE SPECIFIC
+            #list of populations present for node- take the population value from the node to pop dict
+
+        #get dictionary of population instances
+        anc_count = Counter(pops)
+        anc_count = {key: anc_count.get(key, 0) for key in asm.values()}
+        #count instances into dictionary
+
+        #add attributes to class node
+        node_table.nodes[n].anc_count = anc_count
+        node_table.nodes[n].exp_het= calc_exp_het(asm_count, node_table.nodes[n].anc_count)
+        length=node_table.nodes[n].length
+        degree=node_table.nodes[n].degree
+        for k in populations:
+            HT=node_table.nodes[n].exp_het['total']
+            if k=='total':
+                HS=np.mean(list(node_table.nodes[n].exp_het.values()))
+                #mean is calculated after 0 limited Hs scores
+            else:
+                HS=node_table.nodes[n].exp_het[k]
+            #print(f'{k}: {HS}')
+            if (HT==0):
+                node_table.nodes[n].Fst[k]=0 
+                # present in all samples therefore completely undifferentiated
+            else:
+                FST=(HT-HS)/HT
+                #we have below 0 FST values- apparently known to be an issue from sample sizing problems
+                #Standard to set those to 0, so that's what we're doing
+                if FST<0:
+                    FST=0
+                node_table.nodes[n].Fst[k]=FST
+
+            fst_val = node_table.nodes[n].Fst[k]
+            #calculate degree from link table for degree normalized, length otherwise
+            for m in metrics:
+                if m=='popuniq-normdegree':
+                    popuniq[m][f'{m}_{k}']+=degree*fst_val
                 else:
-                    HS=node_table.nodes[n].exp_het[k]
-                #print(f'{k}: {HS}')
-                if (HT==0):
-                    node_table.nodes[n].Fst[k]=0 
-                    # present in all samples therefore completely undifferentiated
-                else:
-                    FST=(HT-HS)/HT
-                    #we have below 0 FST values- apparently known to be an issue from sample sizing problems
-                    #Standard to set those to 0, so that's what we're doing
-                    if FST<0:
-                        FST=0
-                    node_table.nodes[n].Fst[k]=FST
-                
-                #calculate degree from link table for degree normalized
-                if metric=='popuniq-normdegree':
-                    degree=0             
-                    popuniq[f'{metric}_{k}']+=node_table.nodes[n].degree*node_table.nodes[n].Fst[k]
-                    
-                else:
-                    popuniq[f'{metric}_{k}']+=length*node_table.nodes[n].Fst[k]
-            ###
-        if len(node_table.nodes.keys())>0:
-            if metric == 'popuniq-normwalk':
-                    popuniq = {key: value / node_table.get_mean_walk_length() for key, value in popuniq.items()}
-            elif metric == 'popuniq-normnode':
-                popuniq = {key: value / node_table.get_mean_node_length() for key, value in popuniq.items()}
-            elif metric == 'popuniq-normdegree':
-                #popuniq={key: value / node_table.get_mean_degree() for key, value in popuniq.items()}
+                    popuniq[m][f'{m}_{k}']+=length*fst_val
+        ###
+
+    n_nodes = len(node_table.nodes.keys())
+    for m in metrics:
+        if n_nodes>0:
+            if m == 'popuniq-normwalk':
+                popuniq[m] = {key: value / node_table.get_mean_walk_length() for key, value in popuniq[m].items()}
+            elif m == 'popuniq-normnode':
+                popuniq[m] = {key: value / node_table.get_mean_node_length() for key, value in popuniq[m].items()}
+            elif m == 'popuniq-normdegree':
                 mean_degree = node_table.get_mean_degree()
-                popuniq = {
+                popuniq[m] = {
                     key: (value / mean_degree if mean_degree != 0 else np.nan)
-                    for key, value in popuniq.items()
+                    for key, value in popuniq[m].items()
                 }
         else:
-            popuniq = {
-                key: np.nan for key, value in popuniq.items()
-            } 
-    return list(popuniq.values())
+            popuniq[m] = {
+                key: np.nan for key in popuniq[m]
+            }
+
+    results = []
+    for m in metrics:
+        results.extend(popuniq[m].values())
+    return results
+
+
+def _pool_popuniq_region_worker(args):
+    """
+    Runs entirely inside the worker (or in-process if no pool): builds
+    NodeTable (+ LinkTable if needed), computes population uniqueness
+    metrics, cleans up the intermediate GFA file, and returns only small
+    summary data — never the NodeTable/LinkTable objects themselves.
+    """
+    gfa_file, exclude_samples, walk_file, reference, metrics_list, asm, asm_count = args
+    try:
+        node_table = gutils.NodeTable(gfa_file=gfa_file, exclude_samples=exclude_samples, walk_file=walk_file)
+
+        if 'popuniq-normdegree' in metrics_list:
+            if node_table.gfa_file is not None:
+                link_table = gutils.LinkTable(node_table.gfa_file, exclude_samples)
+            else:
+                link_table = None
+            if link_table is not None:
+                for n in node_table.nodes:
+                    for l in link_table.links.keys():
+                        if ((n == link_table.links[l].node_1) | (n == link_table.links[l].node_2)):
+                            node_table.nodes[n].degree += 1
+
+        metric_results = compute_population_uniqueness(node_table, asm, asm_count, metrics_list, exclude_samples)
+
+        summary = {
+            "numnodes": len(node_table.nodes.keys()),
+            "total_length": node_table.get_total_node_length(),
+            "numwalks": node_table.numwalks,
+        }
+        return ("ok", summary, metric_results)
+    except MemoryError:
+        return ("memory_error", None, None)
+    except Exception as e:
+        return ("error", str(e), None)
+    finally:
+        try:
+            os.remove(gfa_file)
+        except OSError:
+            pass
