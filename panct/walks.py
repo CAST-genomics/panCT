@@ -17,6 +17,7 @@ def extract_walks(
     graph: Path,
     output: Path = None,
     log: logging.Logger = None,
+    memory: str = None,
 ):
     """
     Creates a .walk file mapping nodes in the graph to sample IDs representing
@@ -31,6 +32,8 @@ def extract_walks(
         the graph, but with a .walk.gz file ending, instead.
     log : Logger, optional
         A logging module to which to write messages about progress and any errors
+    memory : str, optional
+        Maximum memory for sort buffer size (passed to sort --buffer-size)
     """
     if log is None:
         log = getLogger(name="walks", level="ERROR")
@@ -62,6 +65,8 @@ def extract_walks(
     # is the output stdout?
     if output != Path(""):
         args.append(output)
+    if memory is not None:
+        args.append(memory)
 
     log.info("Building a mapping of nodes to samples")
     subprocess.run(args, text=True, check=True)

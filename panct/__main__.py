@@ -128,6 +128,13 @@ def walks(
     output_file: Annotated[
         Path, typer.Option("-o", "--out", help="Name of output file")
     ] = None,
+    memory: Annotated[
+        str,
+        typer.Option(
+            "--memory",
+            help="Maximum memory for sort buffer size (passed to sort --buffer-size)",
+        ),
+    ] = None,
     verbosity: verbose = Verbosity.info,
 ):
     """
@@ -137,7 +144,7 @@ def walks(
     from .logging import getLogger
 
     log = getLogger(name="walks", level=verbosity.value)
-    extract_walks(graph, output_file, log)
+    extract_walks(graph, output_file, log, memory)
 
 
 typer_click_object = typer.main.get_command(app)
