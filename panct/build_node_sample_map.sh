@@ -4,6 +4,7 @@
 
 # arg1: GFA file from which to extract walks
 # arg2 (optional): Path to .walk tab separated file to which to write output. Defaults to stdout
+# arg3 (optional): Memory size for sort --buffer-size
 
 # ex: ./build_node_sample_map.sh tests/data/basic.gfa basic.walk
 
@@ -20,7 +21,13 @@ fi } | grep -E '^W' | cut -f 2,3,7 | sed 's/	/:/;s/	//;s/</	/g;s/>/	/g' | awk -F
       print $i, key;
     }
   }
-}' | sort -t '	' -k1,1n -k2,2 | awk -F '	' -v OFS='	' '
+}' | {
+  if [ -n "$3" ]; then
+    sort --buffer-size="$3" -t '	' -k1,1n -k2,2
+  else
+    sort -t '	' -k1,1n -k2,2
+  fi
+} | awk -F '	' -v OFS='	' '
 current==$1 { line = line OFS $2; next; }
 { print line; current=$1; line=$0; }
 END { print line }' | awk -F '	' -v OFS='	' 'NF {

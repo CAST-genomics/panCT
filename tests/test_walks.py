@@ -35,6 +35,26 @@ def test_basic_wo_gz(capfd):
     out_file.unlink()
 
 
+def test_basic_wo_gz_with_memory(capfd):
+    """
+    panct walks --memory 64M --out basic.walk tests/data/basic.gfa
+    """
+    in_file = DATADIR / "basic.gfa"
+    out_file = Path("basic.walk")
+    if out_file.exists():
+        out_file.unlink()
+    exp_file = in_file.with_suffix(".walk")
+
+    cmd = f"walks --memory 64M --out {out_file} {in_file}"
+    result = runner.invoke(app, cmd.split(" "), catch_exceptions=False)
+    captured = capfd.readouterr()
+    assert captured.out == ""
+    assert filecmp.cmp(out_file, exp_file)
+    assert result.exit_code == 0
+
+    out_file.unlink()
+
+
 def test_basic_gz(capfd):
     """
     panct walks tests/data/basic.gfa

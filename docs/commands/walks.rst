@@ -14,6 +14,7 @@ Usage
 
   panct walks \
     --out PATH \
+    --memory TEXT \
     --verbosity [CRITICAL|ERROR|WARNING|INFO|DEBUG|NOTSET] \
     GFAFILE
 
@@ -43,6 +44,12 @@ Below is an additional example based on the HPRC .gfa format graph (not included
   panct walks hprc-v1.1-mc-grch38.gfa
 
 This may take some time. You can speed it up by allocating more memory and CPUs. On our system, we allocated 16 CPUs, 32 GB of RAM, and 7 hours of compute.
+
+You can also request a larger sort buffer for walk extraction:
+
+.. code-block:: bash
+
+  panct walks --memory 16G hprc-v1.1-mc-grch38.gfa
 
 .. warning::
   The ``walks`` command may store thousands of small files (totaling up to ~100 GB) in your system's temporary directory. On some systems, this directory may not have the capacity for walks from the *entire* HPRC pangenome. So we recommend setting the ``$TMPDIR`` environment variable to a larger directory when calling the ``walks`` command.
