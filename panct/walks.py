@@ -3,6 +3,7 @@ Extract walks (W lines) from a GFA file into an indexed tab-separated format
 """
 
 import logging
+import re
 import subprocess
 from shutil import which
 from pathlib import Path
@@ -11,6 +12,42 @@ from tempfile import NamedTemporaryFile
 from pysam import tabix_compress, tabix_index
 
 from .logging import getLogger
+
+
+def _check_sort_version(log: logging.Logger):
+    """Ensure the sort used by the walks pipeline is a recent GNU sort."""
+    sort_path = which("sort")
+    if sort_path is None:
+        message = "GNU sort >= 9.12 is required for the walks command"
+        log.error(message)
+        raise RuntimeError(message)
+
+    msg = "The walks command will be slow unless you have GNU sort >= 9.12"
+    msg_fail = "Could not verify whether GNU sort >= 9.12 is installed. " + msg
+
+    try:
+        result = subprocess.run(
+            [sort_path, "--version"],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+        )
+    except OSError:
+        log.warning(msg_fail)
+        return
+
+    match = re.search(
+        r"^sort \(GNU coreutils\) (\d+(?:\.\d+)*)", result.stdout, re.MULTILINE
+    )
+    if result.returncode != 0 or match is None:
+        log.warning(msg_fail)
+        return
+
+    version = tuple(int(part) for part in match.group(1).split("."))
+    if version < (9, 12):
+        message = f"{msg}; found GNU sort {match.group(1)}"
+        log.warning(message)
 
 
 def extract_walks(
@@ -34,6 +71,8 @@ def extract_walks(
     """
     if log is None:
         log = getLogger(name="walks", level="ERROR")
+
+    _check_sort_version(log)
 
     if output is None:
         if graph.suffix == ".gz":
