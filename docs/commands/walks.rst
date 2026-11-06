@@ -9,7 +9,12 @@ Extracts the walks of a pangenome graph.
 The ``walks`` command outputs a file with walks for an entire graph.
 
 .. warning::
-  The ``sort`` command must be installed. We recommend having at least GNU sort 9.12 (``conda install 'conda-forge::coreutils>=9.12'``). Other versions of sort will be much slower and require more temporary disk space.
+  The ``sort`` command must be installed. We recommend having at least GNU sort 9.12. Other versions of sort will be much slower and require more temporary disk space.
+
+  .. code-block:: bash
+
+    sort --version # must be 9.12 or greater
+    conda install 'conda-forge::coreutils>=9.12'
 
 Usage
 ~~~~~
