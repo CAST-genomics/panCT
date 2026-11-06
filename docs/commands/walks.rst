@@ -54,7 +54,7 @@ This may take some time. You can speed it up by allocating more memory. (Allocat
 
     TMPDIR=/scratch/$USER/job_$SLURM_JOBID panct walks hprc-v2.0-mc-chm13.gfa
 
-  Ideally, you would choose a directory that is optimized for I/O-intensive work. In this example, we are using node-local scratch space on UCSD's TSCC (with `--nodelist tscc-11-[5,14,16,18,19,27]`) or Expanse HPCs, for instance.
+  Ideally, you would choose a directory that is optimized for I/O-intensive work. In this example, we are using node-local scratch space on UCSD's TSCC (with ``--nodelist tscc-11-[5,14,16,18,19,27]``) or Expanse HPCs, for instance.
 
 Detailed Usage
 ~~~~~~~~~~~~~~
