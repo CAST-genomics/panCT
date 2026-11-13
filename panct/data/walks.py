@@ -88,7 +88,8 @@ class Walks(Data):
                             s=samp.split('#')[0]
                             #get the sample ID (no haplotype)
                             if not s in list(exclude_samples)+[node]:
-                                t.append(samp.split('#')[0]+'.'+samp.split('#')[1])
+                                t.append(normalize_walk_name(samp))
+                                #t.append(samp.split('#')[0]+'.'+samp.split('#')[1])
                         final_nodes[node]= (t)
                         #print(s)
 
@@ -136,3 +137,22 @@ class Walks(Data):
                     final_nodes[node]=t
             log.info('walk attribution calculation completed.')
         return cls(final_nodes, log)
+
+
+def normalize_walk_name(token: str) -> str:
+    """
+    Convert a walk token to 'sample.hap'. Made to make compatible with both generations of walk file. Handles:
+      sample#hap#contig  (e.g. GRCh38#0#chr10, HG03516#1#JAGYYT010000183.1- walk file for HG38)
+      sample#hap
+      sample:hap         (e.g. CHM13:0, HG00099:1)
+      sample.hap         (already normalized)
+      sample             (no haplotype info; returned unchanged)
+    """
+    token = token.strip()
+    if '#' in token:
+        parts = token.split('#')
+        return f"{parts[0]}.{parts[1]}"
+    if ':' in token:
+        sample, hap = token.split(':', 1)
+        return f"{sample}.{hap}"
+    return token
