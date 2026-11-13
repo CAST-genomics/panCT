@@ -10,7 +10,7 @@ from typing import Optional
 import os
 import numpy as np
 import resource
-
+import traceback
 from .logging import getLogger
 from . import gbz_utils as gbz
 from .data import Region, Regions
@@ -114,6 +114,10 @@ def main(
                    "ratio_SNV", "ratio_min50bp", "mean_degree"] + metrics_list)
     outf.write("\t".join(header) + "\n")
 
+    exclude_samples = {s for s in exclude_samples.split(",") if s}
+    if reference:
+        exclude_samples.add(reference)
+    log.info(f"Filtering out the following samples: {exclude_samples}")
     # Create ONE persistent worker pool for the whole run, reused across every
     # region's NodeTable/LinkTable build. Avoids paying interpreter-startup
     # and import cost per region.
@@ -124,10 +128,7 @@ def main(
         if file_type == "gfa":
             if region_str is not None:
                 log.warning("Regions are ignored when processing GFA")
-            exclude_samples = str.split(exclude_samples, ',')
-            if reference != "":
-                exclude_samples = set(exclude_samples + [reference])
-                log.info(f'filtering out the following samples: {exclude_samples}')
+            #exclude_samples = str.split(exclude_samples, ',')
 
             try:
                 node_table = gbz.build_table_with_limit(
@@ -144,7 +145,7 @@ def main(
                 outf.close()
                 return 0
 
-            link_table = gutils.LinkTable(graph_file, reference)
+            link_table = gutils.LinkTable(node_table.gfa_file, exclude_samples) 
             for n in node_table.nodes:
                 for l in link_table.links.keys():
                     if ((n == link_table.links[l].node_1) | (n == link_table.links[l].node_2)):
@@ -207,11 +208,11 @@ def main(
                 continue
 
             if status != "ok":
-                log.warning(
-                    f"Region {region_label} failed ({status}); likely exceeded {memory_limit_gb}GB cap."
-                    if memory_limit_gb is not None else
-                    f"Region {region_label} failed ({status})."
-                )
+                if status == "memory_error":
+                    log.warning(f"Region {region_label} failed (memory_error); likely exceeded {memory_limit_gb}GB cap.")
+                else:
+                    log.error(f"Region {region_label} failed ({status}):\n{summary}")
+
                 with open(skipped_bed_file, "a") as skipf:
                     skipf.write(f"{region.chrom}\t{region.start}\t{region.end}\n")
                 continue
@@ -366,4 +367,4 @@ def _pool_complexity_region_worker(args):
     except MemoryError:
         return ("memory_error", None, None)
     except Exception as e:
-        return ("error", str(e), None)
+        return ("error", f"{type(e).__name__}: {e}\n{traceback.format_exc()}", None)

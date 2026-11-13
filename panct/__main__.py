@@ -242,3 +242,38 @@ def population_uniqueness(
     retcode = population_uniqueness_main(graph, output_file, region_str, metrics, reference, exclude_samples, walk_file, assemblies_file, log, skip_highnode,memory_limit_gb)
     if retcode != 0:
         typer.Exit(code=retcode)
+
+# Adding dummy command for now
+# Removing this breaks Typer commands?
+@app.command()
+def walks(
+    graph: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            readable=True,
+            show_default=False,
+            help="Path to the .gfa file of a pangenome graph",
+        ),
+    ],
+    output_file: Annotated[
+        Path, typer.Option("-o", "--out", help="Name of output file")
+    ] = None,
+    verbosity: verbose = Verbosity.info,
+):
+    """
+    Extract walks to a file
+    """
+    from .walks import extract_walks
+    from .logging import getLogger
+
+    log = getLogger(name="walks", level=verbosity.value)
+    extract_walks(graph, output_file, log)
+
+
+typer_click_object = typer.main.get_command(app)
+
+
+if __name__ == "__main__":
+    # Run the CLI when called from the command line or via python -m panct
+    app(prog_name="panct")
