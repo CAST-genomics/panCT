@@ -7,6 +7,7 @@
 
 # ex: ./build_node_sample_map.sh tests/data/basic.gfa basic.walk
 
+export LC_ALL=C
 
 { if [ "${1##*.}" = "gz" ]; then
   gzip -dc "$1"
