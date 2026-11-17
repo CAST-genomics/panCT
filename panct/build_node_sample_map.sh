@@ -7,6 +7,7 @@
 
 # ex: ./build_node_sample_map.sh tests/data/basic.gfa basic.walk
 
+export LC_ALL=C
 
 { if [ "${1##*.}" = "gz" ]; then
   gzip -dc "$1"
@@ -27,7 +28,7 @@ END { print line }' | awk -F '	' -v OFS='	' 'NF {
   print "" FS $0
 }' | {
   if [ "${2##*.}" = "gz" ]; then
-    bgzip
+    bgzip -@ 4 # use 4 threads to compress
   else
     cat
   fi
