@@ -28,7 +28,7 @@ END { print line }' | awk -F '	' -v OFS='	' 'NF {
   print "" FS $0
 }' | {
   if [ "${2##*.}" = "gz" ]; then
-    bgzip
+    bgzip -@ 4 # use 4 threads to compress
   else
     cat
   fi
